@@ -7,10 +7,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
+
+# Lock files
+*.lock
+package-lock.json
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +28,9 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# IDE settings
+.gemini/
+
+# Development assets
+attached_assets/

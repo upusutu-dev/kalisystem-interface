@@ -21,28 +21,29 @@ export function QuantityInput({
 }: QuantityInputProps) {
   const handleIncrement = () => {
     if (max === undefined || value < max) {
-      const increment = value < 1 ? 0.1 : 1;
-      const newValue = Math.round((value + increment) * 100) / 100;
+      // Always increment by 0.01 for precise control
+      const newValue = Math.round((value + 0.01) * 100) / 100;
       onChange(newValue);
     }
   };
 
   const handleDecrement = () => {
     if (value > min) {
-      const decrement = value <= 1 ? 0.1 : 1;
-      const newValue = Math.max(min, Math.round((value - decrement) * 100) / 100);
+      // Always decrement by 0.01 for precise control
+      const newValue = Math.max(min, Math.round((value - 0.01) * 100) / 100);
       onChange(newValue);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Handle empty input without immediately resetting to 0
+    // Handle empty input or decimal point without immediately resetting
     if (e.target.value === '' || e.target.value === '.') {
+      e.target.value = e.target.value;
       return;
     }
     
-    // Parse the input value
-    const newValue = parseFloat(e.target.value);
+    // Parse the input value, allowing decimals
+    let newValue = parseFloat(e.target.value);
     
     // If parsing failed, keep the current value
     if (isNaN(newValue)) {
@@ -50,9 +51,15 @@ export function QuantityInput({
       return;
     }
     
+    // Round to 2 decimal places
+    newValue = Math.round(newValue * 100) / 100;
+    
     // Clamp the value between min and max
     const clampedValue = Math.max(min, max !== undefined ? Math.min(max, newValue) : newValue);
-    onChange(clampedValue);
+    
+    if (clampedValue !== value) {
+      onChange(clampedValue);
+    }
   };
 
   return (
@@ -70,10 +77,10 @@ export function QuantityInput({
       </Button>
       <Input
         type="number"
-        step="0.1"
+        step="0.01"
         min={min}
         max={max}
-        value={value}
+        value={value.toFixed(2)}
         onChange={handleInputChange}
         onBlur={(e) => {
           // Ensure valid number on blur

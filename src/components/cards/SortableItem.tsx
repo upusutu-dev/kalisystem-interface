@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { QuantityInput } from '@/components/QuantityInput';
@@ -13,7 +13,7 @@ interface SortableItemProps {
   onQuantityChange: (qty: number) => void;
 }
 
-function SortableItem({ item, onRemove, onQuantityChange }: SortableItemProps) {
+export default function SortableItem({ item, onRemove, onQuantityChange }: SortableItemProps) {
   const [showQuantity, setShowQuantity] = useState(false);
   const quantityRef = useRef<HTMLDivElement>(null);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
@@ -40,14 +40,6 @@ function SortableItem({ item, onRemove, onQuantityChange }: SortableItemProps) {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showQuantity]);
-
-  const handleQuantityChange = useCallback((qty: number) => {
-    onQuantityChange(qty);
-  }, [onQuantityChange]);
-
-  const handleRemoveClick = useCallback(() => {
-    onRemove();
-  }, [onRemove]);
 
   return (
     <div
@@ -92,5 +84,3 @@ function SortableItem({ item, onRemove, onQuantityChange }: SortableItemProps) {
     </div>
   );
 }
-
-export default memo(SortableItem);

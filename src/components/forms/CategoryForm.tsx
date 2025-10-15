@@ -7,7 +7,7 @@ import React from 'react';
 export function CategoryForm({ data, setData, onSave, onCancel, isEdit, parentCategories }: {
   data: any;
   setData: (d: any) => void;
-  onSave: () => void;
+  onSave: (data: any) => void;
   onCancel: () => void;
   isEdit?: boolean;
   parentCategories: string[];

@@ -1,31 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SupplierForm } from '@/components/forms/SupplierForm';
 import { useApp } from '@/contexts/AppContext';
-import { Supplier, Item } from '@/types';
-import { Loader2 } from 'lucide-react';
 
-interface SupplierCardProps {
-  supplier: Supplier & { items?: Item[] };
-  onEdit?: (data: Supplier) => void;
-}
-
-export function SupplierCard({ supplier, onEdit }: SupplierCardProps) {
+export function SupplierCard({ supplier, onEdit }: { supplier: any; onEdit?: (data: any) => void }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const [editData, setEditData] = useState<Supplier>(supplier);
+  const [editData, setEditData] = useState(supplier);
   const { deleteSupplier, updateSupplier } = useApp();
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, []);
 
   const handleMouseDown = () => {
     timerRef.current = setTimeout(() => setIsEditOpen(true), 600);

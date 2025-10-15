@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "./contexts/AppContext";
+import { CoreDataProvider } from "./contexts/CoreDataContext";
 import { BurgerMenu } from "./components/BurgerMenu";
 import Home from "./pages/Home";
 import Items from "./pages/Items";
@@ -22,10 +23,11 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AppProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter
+        <CoreDataProvider>
+          <AppProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter
             future={{
               v7_startTransition: true,
               v7_relativeSplatPath: true,
@@ -43,7 +45,8 @@ const App = () => {
             </Routes>
             <BurgerMenu />
           </BrowserRouter>
-        </AppProvider>
+          </AppProvider>
+        </CoreDataProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

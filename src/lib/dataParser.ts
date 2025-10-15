@@ -1,3 +1,108 @@
+import { Item, Category, Supplier, Store, AppSettings, STORE_TAGS } from '@/types';
+import { nanoid } from 'nanoid';
+
+interface ParsedData {
+  items: Item[];
+  categories: Category[];
+  suppliers: Supplier[];
+  stores: Store[];
+  settings?: AppSettings;
+}
+
+export function parseDefaultData(data: any): ParsedData {
+  // Check if this is the new format
+  if (!Array.isArray(data) && data.exportInfo?.version) {
+    return {
+      items: data.items || [],
+      categories: Object.values(data.categories || {}),
+      suppliers: Object.values(data.suppliers || {}),
+      stores: Object.values(data.stores || {}),
+      settings: data.settings || { posMode: true, autosave: true }
+    };
+  }
+
+  // Handle legacy format
+  if (Array.isArray(data) && data.length === 2) {
+    const [categoryMap, supplierMap] = data;
+    const uniqueCategories = new Set<string>();
+    const uniqueSuppliers = new Set<string>();
+    const items: Item[] = [];
+
+    // Process items
+    Object.entries(categoryMap)
+      .filter(([key]) => key !== 'item')
+      .forEach(([itemName, categoryInfo]) => {
+        const supplier = supplierMap[itemName];
+        if (typeof categoryInfo === 'string') {
+          const [emoji, category] = categoryInfo.split(/(?=[A-Z])/);
+          uniqueCategories.add(category);
+          uniqueSuppliers.add(supplier);
+
+          items.push({
+            id: nanoid(),
+            name: itemName,
+            category,
+            supplier,
+            tags: []
+          });
+        }
+      });
+
+    // Create categories
+    const categories: Category[] = Array.from(uniqueCategories).map(name => ({
+      id: nanoid(),
+      name,
+      emoji: '📦' // Default emoji
+    }));
+
+    // Create suppliers with default values
+    const suppliers: Supplier[] = Array.from(uniqueSuppliers).map(name => ({
+      id: nanoid(),
+      name,
+      paymentMethod: 'COD',
+      orderType: 'Delivery'
+    }));
+
+    // Create default stores from STORE_TAGS
+    const stores: Store[] = STORE_TAGS.map(tag => ({
+      id: tag,
+      name: tag.toUpperCase(),
+      tag,
+      isActive: true
+    }));
+
+    return {
+      items,
+      categories,
+      suppliers,
+      stores,
+      settings: { posMode: true, autosave: true }
+    };
+  }
+
+  throw new Error('Invalid data format');
+}
+
+export function serializeData(data: ParsedData): string {
+  return JSON.stringify({
+    items: data.items,
+    categories: data.categories.reduce((acc, cat) => ({
+      ...acc,
+      [cat.id]: cat
+    }), {}),
+    suppliers: data.suppliers.reduce((acc, sup) => ({
+      ...acc,
+      [sup.id]: sup
+    }), {}),
+    settings: data.settings || { posMode: true, autosave: true },
+    exportInfo: {
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    }
+  }, null, 2);
+}
+
 // --- Order parsing and matching utilities ---
 export const UNITS = [
   'kg', 'g', 'l', 'ml', 'pc', 'pcs', 'can', 'cans', 'bt', 'bottle', 'bottles',
@@ -127,66 +232,6 @@ export function parseQuantityAndName(text: string): { name: string; quantity: nu
   }
   return { name, quantity };
 }
-import { Item, Category, Supplier } from '@/types';
-import { nanoid } from 'nanoid';
-
-export function parseDefaultData(data: any[]): {
-  items: Item[];
-  categories: Category[];
-  suppliers: Supplier[];
-} {
-  const categoryMap = data[0];
-  const supplierMap = data[1];
-
-  const categoriesSet = new Map<string, Category>();
-  const suppliersSet = new Map<string, Supplier>();
-  const items: Item[] = [];
-
-  Object.entries(categoryMap).forEach(([itemName, categoryStr]) => {
-    if (itemName === 'item') return;
-
-    const category = categoryStr as string;
-    const supplier = supplierMap[itemName] || 'Unknown';
-
-    // Extract emoji from category
-    const emojiMatch = category.match(/(\p{Emoji})/u);
-    const categoryName = category.replace(/(\p{Emoji})/gu, '').trim();
-    const emoji = emojiMatch ? emojiMatch[0] : '📦';
-
-    // Add category
-    if (!categoriesSet.has(categoryName)) {
-      categoriesSet.set(categoryName, {
-        id: nanoid(),
-        name: categoryName,
-        emoji,
-      });
-    }
-
-    // Add supplier
-    if (!suppliersSet.has(supplier)) {
-      suppliersSet.set(supplier, {
-        id: nanoid(),
-        name: supplier,
-      });
-    }
-
-    // Add item
-    items.push({
-      id: nanoid(),
-      name: itemName,
-      category: categoryName,
-      supplier,
-      tags: [],
-    });
-  });
-
-  return {
-    items,
-    categories: Array.from(categoriesSet.values()),
-    suppliers: Array.from(suppliersSet.values()),
-  };
-}
-
 // Accepts labels like 'Cucumber 4pcs', 'Egg 30', 'Box pasta 2pcs', 'Bell pepper red2 yellow 2', etc.
 // Extracts item name and quantity, removes units like 'pcs', 'kg', 'L', etc.
 export function parseQuickOrder(text: string, items: Item[]): { item: Item; quantity: number } | null {

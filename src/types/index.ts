@@ -75,9 +75,17 @@ export interface AppSettings {
   defaultSupplier?: string;
   orderTemplate?: string;
   posMode?: boolean;
+  autosave?: boolean;
 }
 
 export type StoreTag = 'cv2' | 'o2' | 'wb' | 'sti' | 'myym' | 'leo';
+
+export interface Store {
+  id: string;
+  name: string;
+  tag: StoreTag;
+  isActive: boolean;
+}
 
 export const STORE_TAGS: StoreTag[] = ['cv2', 'o2', 'wb', 'sti', 'myym', 'leo'];
 

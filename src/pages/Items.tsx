@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,32 +10,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Plus, Filter, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseQuickOrder } from '@/lib/dataParser';
-import { useLocation } from 'react-router-dom';
-import { nanoid } from 'nanoid';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PAYMENT_TAGS, ORDER_TYPE_TAGS, UNIT_TAGS } from '@/constants/tags';
+import { Item } from '@/types';
 import { CATEGORY_GROUPS, GROUP_HIERARCHY } from '@/utils/categoryGroups';
-import { SupplierForm } from '@/components/forms/SupplierForm';
-import { ItemForm } from '@/components/forms/ItemForm';
-import { CategoryForm } from '@/components/forms/CategoryForm';
 import { GroupCard } from '@/components/cards/GroupCard';
-import { SupplierCard } from '@/components/cards/SupplierCard';
 import { ItemCard } from '@/components/cards/ItemCard';
+import { CategoryForm } from '@/components/forms/CategoryForm';
 import type { SupplierFormData, ItemFormData, CategoryFormData } from '@/types/forms';
 import { STORE_TAGS, StoreTag } from '@/types';
-
-import { useNavigate } from 'react-router-dom';
+import { useItemManagement } from '@/hooks/use-item-management';
+import { useItemFilters } from '@/hooks/use-item-filters';
+import { ItemDialogForm } from '@/components/dialogs/ItemDialogForm';
 
 export default function Items() {
   const navigate = useNavigate();
-  const { items, categories, suppliers, addToOrder, updateItem, settings, updateSettings, addCategory, addItem } = useApp();
+  const { 
+    items, 
+    categories, 
+    suppliers, 
+    addToOrder, 
+    updateItem,
+    deleteItem,
+    settings, 
+    updateSettings, 
+    addCategory, 
+    addSupplier,
+    addItem 
+  } = useApp();
+  
+  const { handleAddItem, handleAddCategory } = useItemManagement();
+  
   const [search, setSearch] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [filterMode, setFilterMode] = useState<'category' | 'supplier'>('category');
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [enabledGroups, setEnabledGroups] = useState<Set<string>>(new Set(['Food', 'Beverages', 'Households']));
   const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
   const [isNewSupplierOpen, setIsNewSupplierOpen] = useState(false);
+  
+  // Use the new filter hook
+  const visibleItems = useItemFilters(items, {
+    search,
+    categories: filterMode === 'category' ? selectedCategories : undefined,
+    suppliers: filterMode === 'supplier' ? selectedSuppliers : undefined
+  });
   const [newSupplierData, setNewSupplierData] = useState({
     name: '',
     contact: '',
@@ -58,43 +77,17 @@ export default function Items() {
   const urlParams = new URLSearchParams(location.search);
   const groupBy = urlParams.get('groupBy') as 'category' | 'supplier' | null;
 
-  const getVisibleCategories = useMemo(() => {
-    const visible = new Set<string>(['New Item', 'Wishlist']);
-    
-    enabledGroups.forEach(mainGroup => {
-      const subGroups = GROUP_HIERARCHY[mainGroup as keyof typeof GROUP_HIERARCHY] || [];
-      subGroups.forEach(subGroup => {
-        const cats = CATEGORY_GROUPS[subGroup as keyof typeof CATEGORY_GROUPS] || [];
-        cats.forEach(cat => visible.add(cat));
-      });
-    });
-    
-    return visible;
-  }, [enabledGroups]);
-
-  const filteredItems = useMemo(() => {
-    return items.filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
-      
-      if (groupBy === 'category' && enabledGroups.size < 3) {
-        const isCategoryVisible = getVisibleCategories.has(item.category);
-        if (!isCategoryVisible) return false;
-      }
-      
-      if (filterMode === 'category') {
-        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(item.category);
-        return matchesSearch && matchesCategory;
-      } else {
-        const matchesSupplier = selectedSuppliers.length === 0 || selectedSuppliers.includes(item.supplier);
-        return matchesSearch && matchesSupplier;
-      }
-    });
-  }, [items, search, selectedCategories, selectedSuppliers, filterMode, groupBy, enabledGroups, getVisibleCategories]);
+  const { filteredItems, visibleCategories } = useItemFilters(items, {
+    search,
+    categories: filterMode === 'category' ? selectedCategories : undefined,
+    suppliers: filterMode === 'supplier' ? selectedSuppliers : undefined,
+    enabledGroups: Array.from(enabledGroups)
+  });
 
   // Add groupedItems useMemo for groupBy
   const groupedItems = useMemo(() => {
     if (!groupBy) return null;
-    const groups: Record<string, typeof items> = {};
+    const groups: Record<string, Item[]> = {};
     filteredItems.forEach(item => {
       const key = groupBy === 'category' ? item.category : item.supplier;
       if (!groups[key]) groups[key] = [];
@@ -110,7 +103,7 @@ export default function Items() {
     }
   }, [filteredItems, search]);
 
-  const handleQuickAdd = (item: typeof items[0]) => {
+  const handleQuickAdd = (item: Item) => {
     if (settings.posMode) {
       setPendingOrderItem({ item, quantity: 1 });
       setStoreDialogOpen(true);
@@ -141,13 +134,7 @@ export default function Items() {
     );
   };
 
-  const handleSupplierToggle = (supplierName: string) => {
-    setSelectedSuppliers(prev =>
-      prev.includes(supplierName)
-        ? prev.filter(s => s !== supplierName)
-        : [...prev, supplierName]
-    );
-  };
+
 
   const toggleMainGroup = (group: string) => {
     setEnabledGroups(prev => {
@@ -161,22 +148,22 @@ export default function Items() {
     });
   };
 
-  const handleAddCategory = () => {
-    if (!newCategoryData.name.trim()) {
-      toast.error('Please enter category name');
-      return;
-    }
-    addCategory({
-      name: newCategoryData.name,
-      emoji: newCategoryData.emoji,
-    });
-    toast.success('Category added successfully');
-    setIsNewCategoryOpen(false);
-    setNewCategoryData({
-      name: '',
-      parentCategory: '',
-      emoji: '📁',
-    });
+  const handleAddNewCategory = () => {
+    handleAddCategory(
+      {
+        name: newCategoryData.name,
+        emoji: newCategoryData.emoji,
+        parentCategory: newCategoryData.parentCategory
+      },
+      () => {
+        setIsNewCategoryOpen(false);
+        setNewCategoryData({
+          name: '',
+          parentCategory: '',
+          emoji: '📁',
+        });
+      }
+    );
   };
 
   const parentCategories = Object.keys(CATEGORY_GROUPS);
@@ -293,18 +280,7 @@ export default function Items() {
             </Button>
           </div>
         )}
-        {/* Filter Controls */}
-        {!groupBy && (
-          <div className="flex items-center gap-2 text-xs">
-            <span className={filterMode === 'category' ? 'font-medium' : 'text-muted-foreground'}>Items</span>
-            <Switch
-              checked={filterMode === 'supplier'}
-              onCheckedChange={(checked) => setFilterMode(checked ? 'supplier' : 'category')}
-              data-testid="switch-filter-mode"
-            />
-            <span className={filterMode === 'supplier' ? 'font-medium' : 'text-muted-foreground'}>Supplier</span>
-          </div>
-        )}
+
         {/* Items Display */}
         {groupBy && groupedItems && Object.keys(groupedItems).length > 0 ? (
           <div className="space-y-3">
@@ -329,11 +305,7 @@ export default function Items() {
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Only show suppliers if filterMode is 'supplier' */}
-            {filterMode === 'supplier' && suppliers.map(supplier => (
-              <SupplierCard key={supplier.id} supplier={supplier} />
-            ))}
-            {/* Always show items */}
+            {/* Show items */}
             {Array.isArray(filteredItems) && filteredItems.map(item => (
               <ItemCard
                 key={item.id}
@@ -379,7 +351,7 @@ export default function Items() {
           <CategoryForm
             data={newCategoryData}
             setData={setNewCategoryData}
-            onSave={handleAddCategory}
+            onSave={handleAddNewCategory}
             onCancel={() => setIsNewCategoryOpen(false)}
             parentCategories={parentCategories}
           />

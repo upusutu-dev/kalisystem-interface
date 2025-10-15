@@ -7,7 +7,7 @@ import React from 'react';
 export function ItemForm({ data, setData, onSave, onCancel, isEdit, categories, suppliers }: {
   data: any;
   setData: (d: any) => void;
-  onSave: () => void;
+  onSave: (data: any) => void;
   onCancel: () => void;
   isEdit?: boolean;
   categories: any[];

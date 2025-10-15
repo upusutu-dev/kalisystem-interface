@@ -3,9 +3,10 @@ import { useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { parseDefaultData } from '@/lib/dataParser';
-import defaultData from '/src/default-data.json' assert { type: 'json' };
+import defaultData from '@/default-data.json';
 import { Item, OrderItem, STORE_TAGS } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useApp } from '@/contexts/AppContext';
 
 // This is the dedicated order flow interface for real ordering
 // Details like manager, payment, etc. will be set later or by admin
@@ -13,11 +14,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 
 export default function OrderFlow() {
   const { supplierId, storeId } = useParams();
-  const [order, setOrder] = useState<OrderItem[]>([]);
+  const { 
+    items: allItems, 
+    currentOrder: order,
+    addToOrder,
+    removeFromOrder,
+    updateOrderItem,
+    settings,
+  } = useApp();
+  
   const [items, setItems] = useState<Item[]>([]);
-  const [storeDialogOpen, setStoreDialogOpen] = useState(false);
-  const [pendingItem, setPendingItem] = useState<Item | null>(null);
-  const [selectedStore, setSelectedStore] = useState(storeId || '');
 
   useEffect(() => {
     // Parse items for the supplier
@@ -28,65 +34,29 @@ export default function OrderFlow() {
     setItems(filtered);
   }, [supplierId]);
 
-  const addToOrder = (item: Item) => {
-    // Prompt for store selection if not set
-    setPendingItem(item);
-    setStoreDialogOpen(true);
+  const handleAddToOrder = (item: Item) => {
+    addToOrder(item, 1, storeId || 'default');
   };
 
-  const confirmAddToOrder = () => {
-    if (!pendingItem || !selectedStore) return;
-    setOrder((prev) => {
-      const exists = prev.find(
-        (oi) => oi.item.id === pendingItem.id && oi.storeTag === selectedStore
-      );
-      if (exists) {
-        return prev.map((oi) =>
-          oi.item.id === pendingItem.id && oi.storeTag === selectedStore
-            ? { ...oi, quantity: oi.quantity + 1 }
-            : oi
-        );
-      }
-      return [
-        ...prev,
-        {
-          item: { ...pendingItem, category: pendingItem.category || 'Notset' },
-          quantity: 1,
-          storeTag: selectedStore,
-        },
-      ];
-    });
-    setPendingItem(null);
-    setStoreDialogOpen(false);
+  const handleRemoveFromOrder = (itemId: string) => {
+    removeFromOrder(itemId, storeId);
   };
 
-  const removeFromOrder = (itemId: string) => {
-    setOrder((prev) => prev.filter((oi) => oi.item.id !== itemId || oi.storeTag !== storeId));
-  };
-
-  const updateQuantity = (itemId: string, qty: number) => {
-    setOrder((prev) =>
-      prev.map((oi) =>
-        oi.item.id === itemId && oi.storeTag === storeId
-          ? { ...oi, quantity: qty }
-          : oi
-      )
-    );
+  const handleUpdateQuantity = (itemId: string, qty: number) => {
+    updateOrderItem(itemId, qty, storeId);
   };
 
   const handleSendOrder = () => {
-    // For now, just clear order and show preview
-    setOrder([]);
+    // For now, just show preview
     alert('Order sent!');
   };
 
   const handleHoldOrder = () => {
-    setOrder([]);
     alert('Order held!');
   };
 
   const orderPreview = useMemo(() => {
-    if (order.length === 0) return 'Order is empty.';
+    if (!order || order.length === 0) return 'Order is empty.';
     return order
       .map(
         (oi) =>
@@ -116,38 +86,15 @@ export default function OrderFlow() {
                 <div key={item.id} className="flex items-center gap-3">
                   <span className="font-medium">{item.name}</span>
                   <span className="text-xs text-muted-foreground">{item.category || 'Notset'}</span>
-                  <Button size="sm" onClick={() => addToOrder(item)}>
-                    Add
+                                    <Button size="sm" onClick={() => handleAddToOrder(item)}>
+                    Add to order
                   </Button>
                 </div>
               ))
             )}
           </div>
         </Card>
-        <Dialog open={storeDialogOpen} onOpenChange={setStoreDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Select Store</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2 py-2">
-              <label className="text-sm font-medium">Store</label>
-              <select
-                className="w-full border rounded px-2 py-1"
-                value={selectedStore}
-                onChange={e => setSelectedStore(e.target.value)}
-              >
-                <option value="">Select store</option>
-                {STORE_TAGS.map(tag => (
-                  <option key={tag} value={tag}>{tag.toUpperCase()}</option>
-                ))}
-              </select>
-            </div>
-            <DialogFooter>
-              <Button onClick={() => setStoreDialogOpen(false)} variant="outline">Cancel</Button>
-              <Button onClick={confirmAddToOrder} disabled={!selectedStore}>Add to order</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+
         <Card className="p-4 bg-muted border-border">
           <h3 className="font-semibold mb-3 text-sm">Order Preview</h3>
           <pre className="text-xs whitespace-pre-wrap font-mono">{orderPreview}</pre>
@@ -160,10 +107,10 @@ export default function OrderFlow() {
                   type="number"
                   min={1}
                   value={oi.quantity}
-                  onChange={(e) => updateQuantity(oi.item.id, Number(e.target.value))}
+                  onChange={(e) => handleUpdateQuantity(oi.item.id, Number(e.target.value))}
                   className="w-16 px-2 py-1 border rounded"
                 />
-                <Button size="sm" variant="ghost" onClick={() => removeFromOrder(oi.item.id)}>
+                <Button size="sm" variant="ghost" onClick={() => handleRemoveFromOrder(oi.item.id)}>
                   Remove
                 </Button>
               </div>

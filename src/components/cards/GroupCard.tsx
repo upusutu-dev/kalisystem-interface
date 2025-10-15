@@ -1,27 +1,17 @@
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
+import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { ItemForm } from '@/components/forms/ItemForm';
 import { Input } from '@/components/ui/input';
 import { CategoryForm } from '@/components/forms/CategoryForm';
 import { ItemCard } from '@/components/cards/ItemCard';
 import { Item, Category, Supplier } from '@/types';
-
-interface GroupCardProps {
-  groupName: string;
-  groupBy: 'category' | 'supplier';
-  items: Item[];
-  categories: Category[];
-  posMode: boolean;
-  onQuickAdd: (item: Item) => void;
-  allSuppliers: Supplier[];
-  addItem: (item: Omit<Item, 'id'>) => void;
-}
 
 export function GroupCard({ 
   groupName, 
@@ -32,7 +22,16 @@ export function GroupCard({
   onQuickAdd,
   allSuppliers,
   addItem
-}: GroupCardProps) {
+}: { 
+  groupName: string; 
+  groupBy: 'category' | 'supplier';
+  items: Item[]; 
+  categories: Category[];
+  posMode: boolean; 
+  onQuickAdd: (item: Item) => void;
+  allSuppliers: Supplier[];
+  addItem: (item: Omit<Item, 'id'>) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isNewItemOpen, setIsNewItemOpen] = useState(false);
   const [newItemData, setNewItemData] = useState({
@@ -43,14 +42,16 @@ export function GroupCard({
 
   const categoryEmoji = groupBy === 'category' 
     ? categories.find(c => c.name === groupName)?.emoji || '📁'
-    : '🏢';
+    : '';
+
+  const { addItem: addItemToContext } = useApp();
 
   const handleAddItem = () => {
     if (!newItemData.name.trim()) {
       toast.error('Please enter item name');
       return;
     }
-    addItem({
+    addItemToContext({
       name: newItemData.name,
       category: newItemData.category,
       supplier: newItemData.supplier,

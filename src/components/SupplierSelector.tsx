@@ -18,9 +18,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
+import { Supplier } from '@/types';
+
 interface SupplierSelectorProps {
   value: string;
-  suppliers: { id: string; name: string }[];
+  suppliers: Supplier[];
   onSelect: (supplier: string) => void;
   onCreateNew: (name: string) => void;
 }

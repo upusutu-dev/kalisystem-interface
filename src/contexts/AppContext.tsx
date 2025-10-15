@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Item, Category, Supplier, Tag, AppSettings, OrderItem, CompletedOrder, PendingOrder, PendingOrderItem, ManagerTag, CurrentOrderMetadata } from '@/types';
 import { storage } from '@/lib/storage';
+import type { StorageData } from '@/lib/storage';
 import { parseDefaultData } from '@/lib/dataParser';
 import { nanoid } from 'nanoid';
 
@@ -62,7 +63,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [managerTags, setManagerTags] = useState<ManagerTag[]>([]);
-  const [settings, setSettings] = useState<AppSettings>({ posMode: true });
+  const [settings, setSettings] = useState<AppSettings>({ posMode: true, autosave: true });
   const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([]);
   const [currentOrderMetadata, setCurrentOrderMetadata] = useState<CurrentOrderMetadata>({
     orderType: 'Delivery',
@@ -81,6 +82,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const storedSettings = storage.getSettings();
     const storedCompletedOrders = storage.getCompletedOrders();
     const storedPendingOrders = storage.getPendingOrders();
+    const storedCurrentOrder = storage.getCurrentOrder();
+    const storedCurrentOrderMetadata = storage.getCurrentOrderMetadata();
 
     if (storedItems.length > 0) {
       // Ensure Wishlist and New Item categories exist even for existing data
@@ -111,6 +114,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSettings(storedSettings);
       setCompletedOrders(storedCompletedOrders);
       setPendingOrders(storedPendingOrders);
+      setCurrentOrder(storedCurrentOrder);
+      setCurrentOrderMetadata(storedCurrentOrderMetadata);
     } else {
       // Load default data on first launch
       loadDefaultData();
@@ -118,10 +123,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setInitialized(true);
   }, []);
 
-  // Check if autosave is enabled
+  // Check if autosave is enabled from settings
   const isAutosaveEnabled = () => {
-    const stored = localStorage.getItem('autosave-enabled');
-    return stored === null ? true : stored === 'true';
+    return settings.autosave !== false; // Default to true if not explicitly set to false
   };
 
   // Save to storage when data changes
@@ -173,6 +177,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       storage.setManagerTags(managerTags);
     }
   }, [managerTags, initialized]);
+
+  // Persist current order and metadata
+  useEffect(() => {
+    if (initialized && isAutosaveEnabled()) {
+      storage.setCurrentOrder(currentOrder);
+    }
+  }, [currentOrder, initialized]);
+
+  useEffect(() => {
+    if (initialized && isAutosaveEnabled()) {
+      storage.setCurrentOrderMetadata(currentOrderMetadata);
+    }
+  }, [currentOrderMetadata, initialized]);
 
   const loadDefaultData = async () => {
     try {
@@ -352,9 +369,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Import/Export
-  const exportData = () => storage.exportData();
+  const exportData = () => {
+    return storage.exportData();
+  };
 
-  const importData = (data: any) => {
+  const importData = (data: StorageData) => {
     storage.importData(data);
     setItems(storage.getItems());
     setCategories(storage.getCategories());

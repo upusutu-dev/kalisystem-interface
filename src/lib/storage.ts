@@ -1,14 +1,29 @@
-import { Item, Category, Supplier, Tag, AppSettings, CompletedOrder, PendingOrder, ManagerTag } from '@/types';
+import { Item, Category, Supplier, Store, Tag, AppSettings, CompletedOrder, PendingOrder, ManagerTag, OrderItem, CurrentOrderMetadata } from '@/types';
+
+export type StorageData = {
+  items?: Item[];
+  categories?: Category[];
+  suppliers?: Supplier[];
+  stores?: Store[];
+  tags?: Tag[];
+  settings?: AppSettings;
+  completedOrders?: CompletedOrder[];
+  pendingOrders?: PendingOrder[];
+  managerTags?: ManagerTag[];
+};
 
 const STORAGE_KEYS = {
   ITEMS: 'tagcreator_items',
   CATEGORIES: 'tagcreator_categories',
   SUPPLIERS: 'tagcreator_suppliers',
+  STORES: 'tagcreator_stores',
   TAGS: 'tagcreator_tags',
   SETTINGS: 'tagcreator_settings',
   COMPLETED_ORDERS: 'tagcreator_completed_orders',
   PENDING_ORDERS: 'tagcreator_pending_orders',
   MANAGER_TAGS: 'tagcreator_manager_tags',
+  CURRENT_ORDER: 'tagcreator_current_order',
+  CURRENT_ORDER_METADATA: 'tagcreator_current_order_metadata',
 };
 
 class StorageManager {
@@ -61,6 +76,15 @@ class StorageManager {
     this.set(STORAGE_KEYS.SUPPLIERS, suppliers);
   }
 
+  // Stores
+  getStores(): Store[] {
+    return this.get<Store[]>(STORAGE_KEYS.STORES, []);
+  }
+
+  setStores(stores: Store[]): void {
+    this.set(STORAGE_KEYS.STORES, stores);
+  }
+
   // Tags
   getTags(): Tag[] {
     return this.get<Tag[]>(STORAGE_KEYS.TAGS, []);
@@ -106,26 +130,41 @@ class StorageManager {
     this.set(STORAGE_KEYS.MANAGER_TAGS, managerTags);
   }
 
-  // Export all data
-  exportData() {
+  // Current Order
+  getCurrentOrder(): OrderItem[] {
+    return this.get<OrderItem[]>(STORAGE_KEYS.CURRENT_ORDER, []);
+  }
+
+  setCurrentOrder(order: OrderItem[]): void {
+    this.set(STORAGE_KEYS.CURRENT_ORDER, order);
+  }
+
+  // Current Order Metadata
+  getCurrentOrderMetadata(): CurrentOrderMetadata {
+    return this.get<CurrentOrderMetadata>(STORAGE_KEYS.CURRENT_ORDER_METADATA, { orderType: 'Delivery' });
+  }
+
+  setCurrentOrderMetadata(metadata: CurrentOrderMetadata): void {
+    this.set(STORAGE_KEYS.CURRENT_ORDER_METADATA, metadata);
+  }
+
+  public exportData() {
     return {
       items: this.getItems(),
       categories: this.getCategories(),
       suppliers: this.getSuppliers(),
+      stores: this.getStores(),
       tags: this.getTags(),
       settings: this.getSettings(),
-      completedOrders: this.getCompletedOrders(),
-      pendingOrders: this.getPendingOrders(),
-      managerTags: this.getManagerTags(),
-      exportedAt: new Date().toISOString(),
     };
   }
 
   // Import all data
-  importData(data: any): void {
+  importData(data: StorageData): void {
     if (data.items) this.setItems(data.items);
     if (data.categories) this.setCategories(data.categories);
     if (data.suppliers) this.setSuppliers(data.suppliers);
+    if (data.stores) this.setStores(data.stores);
     if (data.tags) this.setTags(data.tags);
     if (data.settings) this.setSettings(data.settings);
     if (data.completedOrders) this.setCompletedOrders(data.completedOrders);

@@ -123,7 +123,7 @@ export function SupplierDispatchCard({
 
   const handleSupplierSave = () => {
     if (supplierName.trim() && supplierName !== card.supplier) {
-      onUpdateSupplier(card.id, supplierName.trim());
+      onUpdateSupplier(card.id, supplierName.toUpperCase());
     }
     setEditingSupplier(false);
   };
@@ -140,9 +140,9 @@ export function SupplierDispatchCard({
   return (
     <Card
       ref={setNodeRef}
-      className={`transition-all duration-200 ${isOver ? 'ring-2 ring-primary' : ''}`}
+      className={`flex flex-col min-h-fit transition-all duration-200 ${isOver ? 'ring-2 ring-primary' : ''}`}
     >
-      <div onClick={onToggleCollapse} className="cursor-pointer">
+      <div onClick={onToggleCollapse} className="cursor-pointer flex-shrink-0">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1">
@@ -214,8 +214,8 @@ export function SupplierDispatchCard({
       </div>
 
       {!isCollapsed && (
-        <CardContent className="pb-3">
-          <ScrollArea className={card.items.length > 5 ? "h-[300px]" : ""}>
+        <CardContent className="pb-3 flex-grow flex flex-col">
+          <ScrollArea className="flex-grow">
             <div className="space-y-2 pr-2">
               {card.items.map((item) => {
                 return (

@@ -16,6 +16,7 @@ import { AddItemModal } from '@/components/AddItemModal';
 import { PasteAndParseCard } from '@/pages/PasteAndParseCard';
 import { KanbanHeader } from '@/pages/KanbanHeader';
 import { SupplierDispatchCard } from '@/pages/SupplierDispatchCard';
+import { useItemManagement } from '@/hooks/use-item-management';
 
 export interface ParsedItem {
   id: string;
@@ -40,7 +41,8 @@ export default function BulkOrder() {
   const [finalizeDialogOpen, setFinalizeDialogOpen] = useState(false);
   const [storeSelectCardId, setStoreSelectCardId] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreTag | null>(null);
-  const { items, suppliers, addToOrder, addSupplier, addPendingOrder, addItem } = useApp();
+  const { items, suppliers, addToOrder, addPendingOrder } = useApp();
+  const { handleAddItem, handleAddSupplier } = useItemManagement();
   const [showFullText, setShowFullText] = useState(false);
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
   const [supplierCards, setSupplierCards] = useState<SupplierCard[]>([]);
@@ -330,7 +332,7 @@ export default function BulkOrder() {
   const addSupplierCard = () => {
     const newCard: SupplierCard = {
       id: `supplier-new-${Date.now()}`,
-      supplier: 'Supplier Name',
+      supplier: 'New Supplier',
       items: [],
     };
     setSupplierCards([...supplierCards, newCard]);
@@ -342,6 +344,11 @@ export default function BulkOrder() {
   };
 
   const updateCardSupplier = (cardId: string, supplier: string) => {
+    // If this is a new supplier, add it
+    if (!suppliers.some(s => s.name === supplier)) {
+      handleAddSupplier({ name: supplier });
+    }
+    
     setSupplierCards(
       supplierCards.map(c => c.id === cardId ? { ...c, supplier } : c)
     );
@@ -489,13 +496,11 @@ export default function BulkOrder() {
 
       // Create the item in the base if it's not already there and we have a valid supplier
       if (!draggedItem.matchedItem && toCard.supplier !== 'New Items') {
-        const newItem: Omit<Item, 'id'> = {
+        handleAddItem({
           name: draggedItem.name,
           supplier: toCard.supplier,
-          category: draggedItem.category || 'New Item',
-          tags: []
-        };
-        addItem(newItem, draggedItem.id);
+          category: draggedItem.category || 'New Item'
+        }, undefined, draggedItem.id);
       }
 
       setSupplierCards(
@@ -593,15 +598,19 @@ export default function BulkOrder() {
           staffFoodItems++;
         }
 
-        const newItem = {
+        handleAddItem({
           name: item.name,
           category: itemCategory,
-          supplier: itemSupplier,
-          tags: [],
-        };
-        addItem(newItem, newItemId);
+          supplier: itemSupplier
+        }, undefined, newItemId);
         pendingItems.push({
-          item: { ...newItem, id: newItemId },
+          item: { 
+            name: item.name,
+            category: itemCategory,
+            supplier: itemSupplier,
+            id: newItemId,
+            tags: []
+          },
           quantity: item.quantity,
           isNewItem: true
         });
@@ -742,7 +751,7 @@ export default function BulkOrder() {
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 auto-rows-min">
                 {supplierCards.map(card => {
                   const isCollapsed = collapsedCards.has(card.id);
                   const toggleCollapse = () => {
@@ -804,13 +813,11 @@ export default function BulkOrder() {
               onCreateNewItem={(name) => {
                 const selectedCard = supplierCards.find(c => c.id === selectedCardForAddItem);
                 const supplier = selectedCard?.supplier || '';
-                addItem({
-                  name: name,
+                handleAddItem({
+                  name,
                   category: 'New Item',
-                  supplier: supplier !== 'New Items' ? supplier : '',
-                  tags: [],
-                });
-                toast.success('New item created');
+                  supplier: supplier !== 'New Items' ? supplier : ''
+                }, undefined);
               }}
             />
           </>

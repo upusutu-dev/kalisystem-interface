@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { Card } from '@/components/ui/card';
+import type { Supplier } from '@/types';
+import { StatCard } from '@/components/cards/StatCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -13,36 +15,76 @@ import { Package, Tag, Users, CheckCircle, ShoppingCart, Plus, Calendar } from '
 import { useNavigate } from 'react-router-dom';
 import { STORE_TAGS } from '@/types';
 import { toast } from 'sonner';
+import { useLongPress } from '@/hooks/use-long-press';
+import { useItemManagement } from '@/hooks/use-item-management';
+import { ItemDialogForm } from '@/components/dialogs/ItemDialogForm';
 import { format } from 'date-fns';
 
-export default function Home() {
-  const { items, categories, suppliers, tags, currentOrder, completedOrders, addItem, addCategory, addSupplier, addTag } = useApp();
+export default function Home(): JSX.Element {
+  const { items, categories, suppliers, tags, currentOrder, completedOrders, addTag, updateSupplier, addCategory } = useApp();
   const navigate = useNavigate();
+  const { handleAddItem, handleAddCategory, handleAddSupplier } = useItemManagement();
   
+  // Modal states
   const [isNewItemOpen, setIsNewItemOpen] = useState(false);
   const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
   const [isNewSupplierOpen, setIsNewSupplierOpen] = useState(false);
   const [isNewTagOpen, setIsNewTagOpen] = useState(false);
+  const [isEditSupplierOpen, setIsEditSupplierOpen] = useState(false);
   
+  // Form data states
   const [newItemData, setNewItemData] = useState({
     name: '',
     category: categories[0]?.name || '',
     supplier: suppliers[0]?.name || '',
   });
-  
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newSupplierName, setNewSupplierName] = useState('');
   const [newTagData, setNewTagData] = useState({
     name: '',
     color: '#3b82f6',
     category: '',
   });
   const [newTagCategory, setNewTagCategory] = useState('');
+  const [supplierToEdit, setSupplierToEdit] = useState<Supplier | null>(null);
 
   const stats = [
-    { label: 'Items', value: items.length, icon: Package, color: 'text-primary' },
-    { label: 'Categories', value: categories.length, icon: Tag, color: 'text-secondary' },
-    { label: 'Suppliers', value: suppliers.length, icon: Users, color: 'text-accent' },
+    { 
+      label: 'Items',
+      value: items.length,
+      icon: Package,
+      color: 'text-primary',
+      onClick: () => navigate('/items'),
+      onAdd: () => setIsNewItemOpen(true)
+    },
+    { 
+      label: 'Categories',
+      value: categories.length,
+      icon: Tag,
+      color: 'text-secondary',
+      onClick: () => navigate('/items?groupBy=category'),
+      onAdd: () => setIsNewCategoryOpen(true)
+    },
+    { 
+      label: 'Suppliers',
+      value: suppliers.length,
+      icon: Users,
+      color: 'text-accent',
+      onClick: () => navigate('/items?groupBy=supplier'),
+      onAdd: () => setIsNewSupplierOpen(true),
+      onLongPress: () => {
+        if (suppliers[0]) {
+          setSupplierToEdit(suppliers[0]);
+          setIsEditSupplierOpen(true);
+        }
+      },
+      onContextMenu: (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (suppliers[0]) {
+          setSupplierToEdit(suppliers[0]);
+          setIsEditSupplierOpen(true);
+        }
+      }
+    }
   ];
 
   const storeOrders = useMemo(() => {
@@ -58,61 +100,36 @@ export default function Home() {
     return orders;
   }, [currentOrder]);
 
-  const handleCardClick = (label: string) => {
-    if (label === 'Items') {
-      navigate('/items');
-    } else if (label === 'Categories') {
-      navigate('/items?groupBy=category');
-    } else if (label === 'Suppliers') {
-      navigate('/items?groupBy=supplier');
-    }
+  const handleAddNewItem = () => {
+    handleAddItem(
+      {
+        name: newItemData.name,
+        category: newItemData.category,
+        supplier: newItemData.supplier,
+      },
+      () => {
+        setIsNewItemOpen(false);
+        setNewItemData({
+          name: '',
+          category: categories[0]?.name || '',
+          supplier: suppliers[0]?.name || '',
+        });
+      }
+    );
   };
 
-  const handleAddItem = () => {
-    if (!newItemData.name.trim()) {
-      toast.error('Please enter item name');
-      return;
-    }
-    addItem({
-      name: newItemData.name,
-      category: newItemData.category,
-      supplier: newItemData.supplier,
-      tags: [],
-    });
-    toast.success('Item added successfully');
-    setIsNewItemOpen(false);
-    setNewItemData({
-      name: '',
-      category: categories[0]?.name || '',
-      supplier: suppliers[0]?.name || '',
-    });
+  const handleAddNewCategory = (name: string, emoji: string = '📁') => {
+    handleAddCategory(
+      { name, emoji },
+      () => setIsNewCategoryOpen(false)
+    );
   };
 
-  const handleAddCategory = () => {
-    if (!newCategoryName.trim()) {
-      toast.error('Please enter category name');
-      return;
-    }
-    addCategory({
-      name: newCategoryName,
-      emoji: '📁',
-    });
-    toast.success('Category added successfully');
-    setIsNewCategoryOpen(false);
-    setNewCategoryName('');
-  };
-
-  const handleAddSupplier = () => {
-    if (!newSupplierName.trim()) {
-      toast.error('Please enter supplier name');
-      return;
-    }
-    addSupplier({
-      name: newSupplierName,
-    });
-    toast.success('Supplier added successfully');
-    setIsNewSupplierOpen(false);
-    setNewSupplierName('');
+  const handleAddNewSupplier = (name: string) => {
+    handleAddSupplier(
+      { name },
+      () => setIsNewSupplierOpen(false)
+    );
   };
 
   const handleAddTag = () => {
@@ -159,34 +176,50 @@ export default function Home() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
-          {stats.map(({ label, value, icon: Icon, color }) => (
-            <Card 
-              key={label} 
-              className="p-4 bg-card border-border cursor-pointer hover:border-primary/30 transition-colors relative group"
-              onClick={() => handleCardClick(label)}
-              data-testid={`card-${label.toLowerCase()}`}
-            >
-              <div className="space-y-2">
-                <Icon className={`w-5 h-5 ${color}`} />
-                <div>
-                  <p className="text-2xl font-bold">{value}</p>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                </div>
-              </div>
-              <Button
-                size="icon"
-                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+          {stats.map(({ label, value, icon: Icon, color, onClick, onAdd, onLongPress, onContextMenu }) => {
+            const longPressProps = onLongPress ? useLongPress({ onLongPress }) : {};
+
+            return (
+              <Card 
+                key={label} 
+                className="p-4 bg-card border-border cursor-pointer hover:border-primary/30 transition-colors relative group"
                 onClick={(e) => {
-                  e.stopPropagation();
-                  if (label === 'Items') setIsNewItemOpen(true);
-                  else if (label === 'Categories') setIsNewCategoryOpen(true);
-                  else if (label === 'Suppliers') setIsNewSupplierOpen(true);
+                  // Only trigger click if it's not part of a long press or context menu
+                  if (!e.defaultPrevented) {
+                    if (onClick) onClick();
+                  }
                 }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (onContextMenu) {
+                    onContextMenu(e);
+                  }
+                }}
+                {...longPressProps}
+                data-testid={`card-${label.toLowerCase()}`}
               >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </Card>
-          ))}
+                <div className="space-y-2">
+                  {Icon && <Icon className={`w-5 h-5 ${color}`} />}
+                  <div>
+                    <p className="text-2xl font-bold">{value}</p>
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                  </div>
+                </div>
+                <Button
+                  size="icon"
+                  className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onAdd) {
+                      onAdd();
+                    }
+                  }}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Tags and Orders Row */}
@@ -395,7 +428,7 @@ export default function Home() {
           <ItemForm
             data={newItemData}
             setData={setNewItemData}
-            onSave={handleAddItem}
+            onSave={() => handleAddNewItem()}
             onCancel={() => setIsNewItemOpen(false)}
             categories={categories}
             suppliers={suppliers}
@@ -412,7 +445,32 @@ export default function Home() {
           <CategoryForm
             data={{ name: newCategoryName, emoji: '📁', parentCategory: '' }}
             setData={d => setNewCategoryName(d.name)}
-            onSave={handleAddCategory}
+            onSave={() => {
+              handleAddCategory({
+                name: newCategoryName,
+                emoji: '📁',
+                parentCategory: ''
+              });
+              setIsNewCategoryOpen(false);
+            }}
+            onCancel={() => setIsNewCategoryOpen(false)}
+            parentCategories={[]}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove duplicate dialog */}
+
+      {/* New Category Dialog */}
+      <Dialog open={isNewCategoryOpen} onOpenChange={setIsNewCategoryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Category</DialogTitle>
+          </DialogHeader>
+          <CategoryForm
+            data={{ name: newCategoryName, emoji: '📁', parentCategory: '' }}
+            setData={(d) => setNewCategoryName(d.name)}
+            onSave={(data) => void handleAddNewCategory(data.name, data.emoji)}
             onCancel={() => setIsNewCategoryOpen(false)}
             parentCategories={[]}
           />
@@ -426,11 +484,38 @@ export default function Home() {
             <DialogTitle>Add New Supplier</DialogTitle>
           </DialogHeader>
           <SupplierForm
-            data={{ name: newSupplierName, contact: '', defaultPaymentMethod: 'COD', defaultOrderType: 'Delivery' }}
-            setData={d => setNewSupplierName(d.name)}
-            onSave={handleAddSupplier}
+            data={{ name: '' }}
+            setData={(d) => handleAddNewSupplier(d.name)}
+            onSave={() => {}}
             onCancel={() => setIsNewSupplierOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Supplier Dialog */}
+      <Dialog open={isEditSupplierOpen} onOpenChange={setIsEditSupplierOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Supplier</DialogTitle>
+          </DialogHeader>
+          {supplierToEdit && (
+            <SupplierForm
+              data={supplierToEdit}
+              setData={(d) => setSupplierToEdit(d)}
+              onSave={() => {
+                if (supplierToEdit) {
+                  updateSupplier(supplierToEdit.id, supplierToEdit);
+                  toast.success('Supplier updated successfully');
+                  setIsEditSupplierOpen(false);
+                  setSupplierToEdit(null);
+                }
+              }}
+              onCancel={() => {
+                setIsEditSupplierOpen(false);
+                setSupplierToEdit(null);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
 

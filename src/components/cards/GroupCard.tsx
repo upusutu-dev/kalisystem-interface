@@ -1,15 +1,27 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ItemForm } from '@/components/forms/ItemForm';
 import { Input } from '@/components/ui/input';
 import { CategoryForm } from '@/components/forms/CategoryForm';
 import { ItemCard } from '@/components/cards/ItemCard';
+import { Item, Category, Supplier } from '@/types';
+
+interface GroupCardProps {
+  groupName: string;
+  groupBy: 'category' | 'supplier';
+  items: Item[];
+  categories: Category[];
+  posMode: boolean;
+  onQuickAdd: (item: Item) => void;
+  allSuppliers: Supplier[];
+  addItem: (item: Omit<Item, 'id'>) => void;
+}
 
 export function GroupCard({ 
   groupName, 
@@ -20,16 +32,7 @@ export function GroupCard({
   onQuickAdd,
   allSuppliers,
   addItem
-}: { 
-  groupName: string; 
-  groupBy: 'category' | 'supplier';
-  items: any[]; 
-  categories: any[];
-  posMode: boolean; 
-  onQuickAdd: (item: any) => void;
-  allSuppliers: any[];
-  addItem: (item: any) => void;
-}) {
+}: GroupCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isNewItemOpen, setIsNewItemOpen] = useState(false);
   const [newItemData, setNewItemData] = useState({

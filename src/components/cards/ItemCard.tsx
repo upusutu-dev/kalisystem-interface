@@ -1,6 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { ItemForm } from '@/components/forms/ItemForm';
-
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,19 +10,29 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Plus, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { nanoid } from 'nanoid';
-import { VARIANT_TAG_TYPES, VARIANT_TYPE_COLORS, VariantTagType, VariantTag } from '@/types';
+import { VARIANT_TAG_TYPES, VARIANT_TYPE_COLORS, VariantTagType, VariantTag, Item } from '@/types';
 import { useApp } from '@/contexts/AppContext';
 
-export function ItemCard({ item, posMode, onQuickAdd, compact = false }: { 
-  item: any; 
-  posMode: boolean; 
-  onQuickAdd: (item: any) => void;
+interface ItemCardProps {
+  item: Item;
+  posMode: boolean;
+  onQuickAdd: (item: Item) => void;
   compact?: boolean;
-}) {
+}
+
+export function ItemCard({ item, posMode, onQuickAdd, compact = false }: ItemCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { categories, suppliers, updateItem } = useApp();
-  const [editData, setEditData] = useState(item);
+  const [editData, setEditData] = useState<Item>(item);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const handleMouseDown = () => {
     timerRef.current = setTimeout(() => setIsEditOpen(true), 600);

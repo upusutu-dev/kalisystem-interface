@@ -1,15 +1,31 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { SupplierForm } from '@/components/forms/SupplierForm';
 import { useApp } from '@/contexts/AppContext';
+import { Supplier, Item } from '@/types';
+import { Loader2 } from 'lucide-react';
 
-export function SupplierCard({ supplier, onEdit }: { supplier: any; onEdit?: (data: any) => void }) {
+interface SupplierCardProps {
+  supplier: Supplier & { items?: Item[] };
+  onEdit?: (data: Supplier) => void;
+}
+
+export function SupplierCard({ supplier, onEdit }: SupplierCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const [editData, setEditData] = useState(supplier);
+  const [editData, setEditData] = useState<Supplier>(supplier);
   const { deleteSupplier, updateSupplier } = useApp();
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const handleMouseDown = () => {
     timerRef.current = setTimeout(() => setIsEditOpen(true), 600);
@@ -28,11 +44,21 @@ export function SupplierCard({ supplier, onEdit }: { supplier: any; onEdit?: (da
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onContextMenu={handleContextMenu}
-      className="relative group"
+      className="relative group flex flex-col min-h-fit max-h-full transition-all duration-200 ease-in-out"
     >
-      <div className="flex items-center justify-between">
-        <span>{supplier.name.toUpperCase()}</span>
-        {/* Add more supplier info as needed */}
+      <div className="flex items-center justify-between p-4">
+        <span className="font-medium">{supplier.name.toUpperCase()}</span>
+      </div>
+      
+      {/* Content area with adaptive height */}
+      <div className="flex-grow overflow-y-auto">
+        <div className="p-4 space-y-2">
+          {supplier.items?.map((item: any) => (
+            <div key={item.id} className="text-sm">
+              {item.name}
+            </div>
+          ))}
+        </div>
       </div>
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent>

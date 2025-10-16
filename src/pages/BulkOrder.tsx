@@ -223,34 +223,66 @@ export default function BulkOrder() {
       let category: string | undefined;
       let supplier: string | undefined;
 
-      // Try to extract trailing number+unit (e.g., 'Egg30pcs', 'Cucumberlong4pcs', 'Box for soup2pcs', 'Potato 5kg')
-      // Match: name + number + optional unit at end
-      const trailingNumUnit = name.match(/^(.*?)\s?(\d+)([a-zA-Z]*)$/);
-      if (trailingNumUnit) {
-        name = trailingNumUnit[1].replace(/\s+$/,'');
-        quantity = parseInt(trailingNumUnit[2], 10);
-        // Remove unit from name if present
-        UNITS.forEach(unit => {
-          name = name.replace(new RegExp(`\\b${unit}\\b`, 'gi'), '');
-        });
-        name = name.replace(/\s+/g, ' ').trim();
-      } else {
-        // Fallback: leading or trailing number separated by space
-        const leadingQtyMatch = text.match(/^(\d+)\s+(.+)$/);
-        if (leadingQtyMatch) {
-          quantity = parseInt(leadingQtyMatch[1], 10);
-          name = leadingQtyMatch[2];
-        } else {
-          const trailingQtyMatch = text.match(/^(.+?)\s+(\d+)$/);
-          if (trailingQtyMatch) {
-            name = trailingQtyMatch[1];
-            quantity = parseInt(trailingQtyMatch[2], 10);
-          }
+      // Try different quantity formats in order of specificity
+      
+      // Format 1: Number with unit directly attached (e.g., "Egg30pcs", "Potato5kg")
+      const attachedNumUnit = name.match(/^(.*?)(\d+\.?\d*)([a-zA-Z]*)$/);
+      
+      // Format 2: Number with optional unit separated by space (e.g., "Egg 30 pcs", "Potato 5 kg")
+      const spaceNumUnit = name.match(/^(.*?)\s+(\d+\.?\d*)(?:\s*([a-zA-Z]+))?$/);
+      
+      // Format 3: Leading number with optional unit (e.g., "30 pcs Egg", "5 kg Potato")
+      const leadingNumUnit = text.match(/^(\d+\.?\d*)(?:\s*([a-zA-Z]+))?\s+(.+)$/);
+
+      if (attachedNumUnit) {
+        name = attachedNumUnit[1].replace(/\s+$/,'');
+        quantity = parseFloat(attachedNumUnit[2]);
+        const unit = attachedNumUnit[3];
+        if (unit) {
+          // Remove unit from name if it's a known unit
+          UNITS.forEach(u => {
+            if (unit.toLowerCase().includes(u.toLowerCase())) {
+              name = name.replace(new RegExp(`\\b${u}\\b`, 'gi'), '');
+            }
+          });
         }
-        UNITS.forEach(unit => {
-          name = name.replace(new RegExp(`\\b${unit}\\b`, 'gi'), '');
-        });
-        name = name.replace(/\s+/g, ' ').trim();
+      } else if (spaceNumUnit) {
+        name = spaceNumUnit[1].replace(/\s+$/,'');
+        quantity = parseFloat(spaceNumUnit[2]);
+        const unit = spaceNumUnit[3];
+        if (unit) {
+          // Remove unit from name if it's a known unit
+          UNITS.forEach(u => {
+            if (unit.toLowerCase().includes(u.toLowerCase())) {
+              name = name.replace(new RegExp(`\\b${u}\\b`, 'gi'), '');
+            }
+          });
+        }
+      } else if (leadingNumUnit) {
+        name = leadingNumUnit[3];
+        quantity = parseFloat(leadingNumUnit[1]);
+        const unit = leadingNumUnit[2];
+        if (unit) {
+          // Remove unit from name if it's a known unit
+          UNITS.forEach(u => {
+            if (unit.toLowerCase().includes(u.toLowerCase())) {
+              name = name.replace(new RegExp(`\\b${u}\\b`, 'gi'), '');
+            }
+          });
+        }
+      }
+
+      // Clean up any remaining units from the name
+      UNITS.forEach(unit => {
+        name = name.replace(new RegExp(`\\b${unit}\\b`, 'gi'), '');
+      });
+      
+      // Clean up multiple spaces and trim
+      name = name.replace(/\s+/g, ' ').trim();
+      
+      // Ensure quantity is valid
+      if (isNaN(quantity) || quantity <= 0) {
+        quantity = 1;
       }
 
       const matchedItem = fuzzyMatch(name, items);

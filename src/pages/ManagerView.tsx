@@ -21,7 +21,7 @@ import {
   Camera,
   Upload,
 } from 'lucide-react';
-import { PendingOrderStatus, StoreTag } from '@/types';
+import { PendingOrderStatus, StoreTag, STORE_TAGS } from '@/types';
 import { toast } from 'sonner';
 
 export default function ManagerView() {
@@ -29,6 +29,13 @@ export default function ManagerView() {
   const [activeTab, setActiveTab] = useState<'processing' | 'completed'>('processing');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [selectedStore, setSelectedStore] = useState<StoreTag | null>(null);
+
+  // Show error message if no store selected
+  useEffect(() => {
+    if (!selectedStore) {
+      toast.error('No store selected. Please use a valid manager link.');
+    }
+  }, [selectedStore]);
   
   // Invoice dialog state
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
@@ -42,21 +49,25 @@ export default function ManagerView() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const store = params.get('store') as StoreTag | null;
-    setSelectedStore(store);
+    const store = params.get('store');
+    if (store && STORE_TAGS.includes(store as StoreTag)) {
+      setSelectedStore(store as StoreTag);
+    }
   }, []);
 
   const filteredProcessingOrders = useMemo(() => {
-    return pendingOrders.filter(
-      order => order.status === 'processing' && 
-      (!selectedStore || order.storeTag === selectedStore)
+    if (!selectedStore) return [];
+    return pendingOrders.filter(order => 
+      order.status === 'processing' && 
+      order.storeTag === selectedStore
     );
   }, [pendingOrders, selectedStore]);
 
   const filteredCompletedOrders = useMemo(() => {
-    return pendingOrders.filter(
-      order => order.status === 'completed' && 
-      (!selectedStore || order.storeTag === selectedStore)
+    if (!selectedStore) return [];
+    return pendingOrders.filter(order => 
+      order.status === 'completed' && 
+      order.storeTag === selectedStore
     );
   }, [pendingOrders, selectedStore]);
 
@@ -411,6 +422,34 @@ export default function ManagerView() {
                                 <span className="text-muted-foreground">x{orderItem.quantity}</span>
                               </div>
                             ))}
+                          </div>
+
+                          {/* Editable Controls */}
+                          <div className="space-y-3 pt-2 border-t">
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor={`amount-${order.id}`} className="text-sm">Amount:</Label>
+                                <Input
+                                  id={`amount-${order.id}`}
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={order.amount || ''}
+                                  onChange={(e) => handleAmountChange(order.id, e.target.value)}
+                                  className="w-24 h-8"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openInvoiceDialog(order.id)}
+                                className="gap-1"
+                              >
+                                <FileText className="w-3 h-3" />
+                                {order.invoiceUrl ? 'Update Invoice' : 'Attach Invoice'}
+                              </Button>
+                            </div>
                           </div>
 
                           {/* Order Status Indicators */}

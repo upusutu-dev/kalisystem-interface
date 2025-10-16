@@ -3,10 +3,13 @@ import { useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { parseDefaultData } from '@/lib/dataParser';
-import defaultData from '@/default-data.json';
+import defaultData from '@/default-data-new.json';
 import { Item, OrderItem, STORE_TAGS } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
+import { serializeData } from '@/lib/dataParser';
+import fs from 'fs';
+import path from 'path';
 
 // This is the dedicated order flow interface for real ordering
 // Details like manager, payment, etc. will be set later or by admin
@@ -26,9 +29,8 @@ export default function OrderFlow() {
   const [items, setItems] = useState<Item[]>([]);
 
   useEffect(() => {
-    // Parse items for the supplier
-    const parsed = parseDefaultData(defaultData);
-    const filtered = parsed.items.filter(
+    // Use the new data format which already has parsed items
+    const filtered = defaultData.items.filter(
       (item) => item.supplier === supplierId
     );
     setItems(filtered);
@@ -46,13 +48,87 @@ export default function OrderFlow() {
     updateOrderItem(itemId, qty, storeId);
   };
 
-  const handleSendOrder = () => {
-    // For now, just show preview
-    alert('Order sent!');
+  // Helper function to save changes to the data file
+  const saveDataChanges = async (newData: typeof defaultData) => {
+    try {
+      // Update exportInfo
+      newData.exportInfo = {
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        lastModified: new Date().toISOString()
+      };
+
+      // Save the changes back to the file
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI) {
+        // If running in Electron, use IPC
+        await electronAPI.saveData(newData);
+      } else {
+        // If running in development, save to local file
+        const filePath = path.join(process.cwd(), 'src/default-data-new.json');
+        await fs.promises.writeFile(filePath, JSON.stringify(newData, null, 2));
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving data:', error);
+      return false;
+    }
   };
 
-  const handleHoldOrder = () => {
-    alert('Order held!');
+  const handleSendOrder = async () => {
+    // Create a copy of the current data
+    const currentData = { ...defaultData };
+    
+    // Update items with new quantities or other changes
+    order.forEach((orderItem) => {
+      const itemIndex = currentData.items.findIndex(i => i.id === orderItem.item.id);
+      if (itemIndex !== -1) {
+        const item = currentData.items[itemIndex];
+        const updatedItem: Item = {
+          ...item,
+          tags: [...item.tags],
+          lastOrdered: new Date().toISOString(),
+          orderCount: ((item as any).orderCount || 0) + 1
+        };
+        currentData.items[itemIndex] = updatedItem;
+      }
+    });
+
+    // Save the changes
+    const saved = await saveDataChanges(currentData);
+    if (saved) {
+      alert('Order sent and data updated!');
+    } else {
+      alert('Order sent but failed to update data!');
+    }
+  };
+
+  const handleHoldOrder = async () => {
+    // Create a copy of the current data
+    const currentData = { ...defaultData };
+    
+    // Update items with hold status
+    order.forEach((orderItem) => {
+      const itemIndex = currentData.items.findIndex(i => i.id === orderItem.item.id);
+      if (itemIndex !== -1) {
+        const item = currentData.items[itemIndex];
+        const updatedItem: Item = {
+          ...item,
+          tags: [...item.tags],
+          lastHeld: new Date().toISOString()
+        };
+        currentData.items[itemIndex] = updatedItem;
+      }
+    });
+
+    // Save the changes
+    const saved = await saveDataChanges(currentData);
+    if (saved) {
+      alert('Order held and data updated!');
+    } else {
+      alert('Order held but failed to update data!');
+    }
   };
 
   const orderPreview = useMemo(() => {

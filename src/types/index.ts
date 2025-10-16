@@ -1,3 +1,6 @@
+export type StoreTag = 'cv2' | 'o2' | 'wb' | 'sti' | 'myym' | 'leo';
+export const STORE_TAGS: StoreTag[] = ['cv2', 'o2', 'wb', 'sti', 'myym', 'leo'];
+
 export interface VariantTag {
   id: string;
   name: string;
@@ -13,6 +16,9 @@ export interface Item {
   tags: string[];
   unitTag?: string;
   variantTags?: VariantTag[];
+  lastOrdered?: string;
+  orderCount?: number;
+  lastHeld?: string;
 }
 
 export const MAIN_CATEGORIES = ['Food', 'Beverage', 'Household'] as const;
@@ -33,8 +39,8 @@ export interface Supplier {
   paymentMethod?: PaymentMethod;
   orderType?: OrderType;
   categories?: string[];
-  defaultPaymentMethod?: PaymentMethod;
-  defaultOrderType?: OrderType;
+  defaultPaymentMethod: PaymentMethod;
+  defaultOrderType: OrderType;
 }
 
 export interface Tag {
@@ -78,16 +84,12 @@ export interface AppSettings {
   autosave?: boolean;
 }
 
-export type StoreTag = 'cv2' | 'o2' | 'wb' | 'sti' | 'myym' | 'leo';
-
-export interface Store {
+export type Store = {
   id: string;
   name: string;
   tag: StoreTag;
   isActive: boolean;
 }
-
-export const STORE_TAGS: StoreTag[] = ['cv2', 'o2', 'wb', 'sti', 'myym', 'leo'];
 
 export const UNIT_TAGS = ['kg', 'pc', 'can', 'L', 'bt', 'pk', 'jar', 'bag', 'small', 'big'] as const;
 

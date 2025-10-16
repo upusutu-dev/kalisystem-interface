@@ -60,7 +60,9 @@ export function parseDefaultData(data: any): ParsedData {
       id: nanoid(),
       name,
       paymentMethod: 'COD',
-      orderType: 'Delivery'
+      orderType: 'Delivery',
+      defaultPaymentMethod: 'COD',
+      defaultOrderType: 'Delivery'
     }));
 
     // Create default stores from STORE_TAGS

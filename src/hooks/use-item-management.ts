@@ -57,14 +57,22 @@ export function useItemManagement() {
       toast.error('Please enter supplier name');
       return false;
     }
-    addSupplier({
-      name: data.name,
-    });
+    addSupplier(buildSupplierPayload(data));
     toast.success('Supplier added successfully');
     onSuccess?.();
     return true;
   };
+const DEFAULT_PAYMENT_METHOD = 'COD' as const;
+const DEFAULT_ORDER_TYPE = 'Delivery' as const;
 
+type SupplierPayload = Omit<Supplier, 'id'>;
+
+const buildSupplierPayload = (data: NewSupplierData): SupplierPayload => ({
+    name: data.name,
+    // treat "defaultPaymentMethod" and "defaultOrderType" as the already-set defaults
+    defaultPaymentMethod: DEFAULT_PAYMENT_METHOD,
+    defaultOrderType: DEFAULT_ORDER_TYPE,
+});
   return {
     handleAddItem,
     handleAddCategory,

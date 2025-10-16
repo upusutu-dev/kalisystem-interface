@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Item, Supplier, StoreTag, STORE_TAGS } from '@/types';
-import { storage } from '@/lib/storage';
+import { Item, Supplier, StoreTag, STORE_TAGS, OrderType, PaymentMethod } from '@/types';
 import { nanoid } from 'nanoid';
+import defaultData from '@/default-data-new.json';
+import fs from 'fs';
+import path from 'path';
 
 interface CoreDataContextType {
   // Core data
@@ -32,20 +34,73 @@ export function CoreDataProvider({ children }: { children: React.ReactNode }) {
   
   // Load initial data
   useEffect(() => {
-    const storedItems = storage.getItems();
-    const storedSuppliers = storage.getSuppliers();
-    
-    if (storedItems) setItems(storedItems);
-    if (storedSuppliers) setSuppliers(storedSuppliers);
+    // Initialize from default-data-new.json
+    setItems(defaultData.items);
+    // Convert supplier data to match our Supplier interface
+    const formattedSuppliers: Supplier[] = Object.values(defaultData.suppliers).map(s => ({
+      id: s.id,
+      name: s.name,
+      defaultPaymentMethod: s.defaultPaymentMethod as PaymentMethod,
+      defaultOrderType: s.defaultOrderType as OrderType
+    }));
+    setSuppliers(formattedSuppliers);
   }, []);
-  
-  // Persist changes
+
+  // Save changes back to the data file
+  const saveDataChanges = async (newData: typeof defaultData) => {
+    try {
+      // Update exportInfo
+      newData.exportInfo = {
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        lastModified: new Date().toISOString()
+      };
+
+      // Save the changes back to the file
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI) {
+        // If running in Electron, use IPC
+        await electronAPI.saveData(newData);
+      } else {
+        // If running in development, save to local file
+        const filePath = path.join(process.cwd(), 'src/default-data-new.json');
+        await fs.promises.writeFile(filePath, JSON.stringify(newData, null, 2));
+      }
+      return true;
+    } catch (error) {
+      console.error('Error saving data:', error);
+      return false;
+    }
+  };
+
+  // Persist changes to the data file
   useEffect(() => {
-    storage.setItems(items);
+    const currentData = { ...defaultData };
+    currentData.items = items;
+    saveDataChanges(currentData);
   }, [items]);
-  
+
   useEffect(() => {
-    storage.setSuppliers(suppliers);
+    const currentData = { ...defaultData };
+    // Convert suppliers to the format expected by the data file
+    const suppliersObj = suppliers.reduce((acc, supplier) => {
+      acc[supplier.id] = {
+        id: supplier.id,
+        name: supplier.name,
+        defaultPaymentMethod: supplier.defaultPaymentMethod,
+        defaultOrderType: supplier.defaultOrderType
+      };
+      return acc;
+    }, {} as typeof defaultData.suppliers);
+    
+    // Update while preserving the object structure
+    Object.keys(currentData.suppliers).forEach(key => {
+      if (suppliersObj[key]) {
+        currentData.suppliers[key] = suppliersObj[key];
+      }
+    });
+    
+    saveDataChanges(currentData);
   }, [suppliers]);
   
   const addItem = (item: Omit<Item, 'id'>) => {
@@ -86,9 +141,12 @@ export function CoreDataProvider({ children }: { children: React.ReactNode }) {
     return STORE_TAGS.includes(tag as StoreTag);
   };
   
-  const getDefaultStoreTag = (): StoreTag => STORE_TAGS[0];
+  const getDefaultStoreTag = (): StoreTag => {
+    // We know this is safe because STORE_TAGS is typed as StoreTag[]
+    return STORE_TAGS[0];
+  };
   
-  const value = {
+  const value: CoreDataContextType = {
     items,
     suppliers,
     storeTags: STORE_TAGS,

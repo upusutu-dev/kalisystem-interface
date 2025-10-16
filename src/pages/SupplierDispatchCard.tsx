@@ -173,12 +173,18 @@ export function SupplierDispatchCard({
                       setEditingSupplier(false);
                     }}
                     onCreateNew={(name) => {
-                      const upperName = name.toUpperCase();
-                      addSupplier({ name: upperName });
-                      onUpdateSupplier(card.id, upperName);
-                      setSupplierName(upperName);
-                      setEditingSupplier(false);
-                    }}
+                        const upperName = name.toUpperCase();
+                        addSupplier({
+                          name: upperName,
+                          paymentMethod: 'COD',
+                          orderType: 'Delivery',
+                          defaultPaymentMethod: 'COD',
+                          defaultOrderType: 'Delivery',
+                        });
+                        onUpdateSupplier(card.id, upperName);
+                        setSupplierName(upperName);
+                        setEditingSupplier(false);
+                      }}
                   />
                 </div>
               ) : (

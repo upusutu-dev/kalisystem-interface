@@ -501,11 +501,24 @@ export default function Order() {
       return;
     }
 
+    // Check if there are any orders for this store
+    const hasProcessingOrders = pendingOrders.some(
+      order => order.status === 'processing' && order.storeTag === selectedStoreForShare
+    );
+    const hasCompletedOrders = pendingOrders.some(
+      order => order.status === 'completed' && order.storeTag === selectedStoreForShare
+    );
+
+    if (!hasProcessingOrders && !hasCompletedOrders) {
+      toast.error('No active or completed orders for this store');
+      return;
+    }
+
     const baseUrl = window.location.origin;
     const shareUrl = `${baseUrl}/manager-view?store=${encodeURIComponent(selectedStoreForShare)}`;
     
     navigator.clipboard.writeText(shareUrl);
-    toast.success('Manager link copied to clipboard!');
+    toast.success('Manager link copied to clipboard! The link will show processing and completed orders for ' + selectedStoreForShare.toUpperCase());
     setShareDialogOpen(false);
     setSelectedStoreForShare('');
   };

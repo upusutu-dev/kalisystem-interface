@@ -28,7 +28,7 @@
       "id": "myym",
       "name": "MYYM",
       "tag": "myym",
-      "isActive": true
+      "isActive": false
     },
     "leo": {
       "id": "leo",
@@ -270,49 +270,37 @@
       "id": "pisey",
       "name": "pisey",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "hong-kong-shop": {
-      "id": "hong-kong-shop",
-      "name": "hong kong shop",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "pp-distributor": {
       "id": "pp-distributor",
       "name": "pp distributor",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "takaway-shop": {
       "id": "takaway-shop",
       "name": "Takaway shop",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "pizza+": {
       "id": "pizza+",
       "name": "pizza+",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "lees": {
       "id": "lees",
       "name": "lees",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "baker-supplies": {
       "id": "baker-supplies",
       "name": "baker supplies",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "granny": {
-      "id": "granny",
-      "name": "granny",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "samu": {
       "id": "samu",
@@ -324,7 +312,7 @@
       "id": "rodina",
       "name": "rodina",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "market": {
       "id": "market",
@@ -336,37 +324,13 @@
       "id": "chanorai",
       "name": "chanorai",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "foody": {
-      "id": "foody",
-      "name": "foody",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "chinese-mart": {
-      "id": "chinese-mart",
-      "name": "chinese mart",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "mummy-yummy": {
-      "id": "mummy-yummy",
-      "name": "mummy yummy",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "sara": {
-      "id": "sara",
-      "name": "sara",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "coca-company": {
       "id": "coca-company",
       "name": "coca company",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "drink-shop": {
       "id": "drink-shop",
@@ -380,39 +344,15 @@
       "defaultPaymentMethod": "cash",
       "defaultOrderType": "pickup"
     },
-    "stock": {
-      "id": "stock",
-      "name": "stock",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
     "kofi": {
       "id": "kofi",
       "name": "kofi",
       "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "7-eleven": {
-      "id": "7-eleven",
-      "name": "7 eleven",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
+      "defaultOrderType": "delivery"
     },
     "savuth": {
       "id": "savuth",
       "name": "savuth",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "ebc": {
-      "id": "ebc",
-      "name": "ebc",
-      "defaultPaymentMethod": "cash",
-      "defaultOrderType": "pickup"
-    },
-    "kitchen-equipment": {
-      "id": "kitchen-equipment",
-      "name": "kitchen equipment",
       "defaultPaymentMethod": "cash",
       "defaultOrderType": "pickup"
     }

@@ -40,10 +40,10 @@ const API_TYPE_MAP: Record<string, string> = {
   [STORAGE_KEYS.CURRENT_ORDER_METADATA]: 'currentOrderMetadata',
 };
 
-// API endpoint
+// API endpoint - use proxy in development, same host in production
 const API_URL = import.meta.env.PROD 
   ? `${window.location.protocol}//${window.location.host}`
-  : 'http://localhost:3001';
+  : '';
 
 class StorageManager {
   private cache: Map<string, any> = new Map();

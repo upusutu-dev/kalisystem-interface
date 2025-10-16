@@ -226,6 +226,11 @@ class StorageManager {
       stores: this.getStores(),
       tags: this.getTags(),
       settings: this.getSettings(),
+      completedOrders: this.getCompletedOrders(),
+      pendingOrders: this.getPendingOrders(),
+      managerTags: this.getManagerTags(),
+      currentOrder: this.getCurrentOrder(),
+      currentOrderMetadata: this.getCurrentOrderMetadata(),
     };
   }
 

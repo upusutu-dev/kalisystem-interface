@@ -26,8 +26,76 @@ const STORAGE_KEYS = {
   CURRENT_ORDER_METADATA: 'tagcreator_current_order_metadata',
 };
 
+const API_TYPE_MAP: Record<string, string> = {
+  [STORAGE_KEYS.ITEMS]: 'items',
+  [STORAGE_KEYS.CATEGORIES]: 'categories',
+  [STORAGE_KEYS.SUPPLIERS]: 'suppliers',
+  [STORAGE_KEYS.STORES]: 'stores',
+  [STORAGE_KEYS.TAGS]: 'tags',
+  [STORAGE_KEYS.SETTINGS]: 'settings',
+  [STORAGE_KEYS.COMPLETED_ORDERS]: 'completedOrders',
+  [STORAGE_KEYS.PENDING_ORDERS]: 'pendingOrders',
+  [STORAGE_KEYS.MANAGER_TAGS]: 'managerTags',
+  [STORAGE_KEYS.CURRENT_ORDER]: 'currentOrder',
+  [STORAGE_KEYS.CURRENT_ORDER_METADATA]: 'currentOrderMetadata',
+};
+
+// API endpoint
+const API_URL = import.meta.env.PROD 
+  ? `${window.location.protocol}//${window.location.host}`
+  : 'http://localhost:3001';
+
 class StorageManager {
   private cache: Map<string, any> = new Map();
+  private apiAvailable: boolean | null = null;
+  private pendingSaves: Map<string, NodeJS.Timeout> = new Map();
+
+  // Check if API is available
+  private async checkApi(): Promise<boolean> {
+    if (this.apiAvailable !== null) return this.apiAvailable;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/health`, { 
+        method: 'GET',
+        signal: AbortSignal.timeout(1000) 
+      });
+      this.apiAvailable = response.ok;
+    } catch {
+      this.apiAvailable = false;
+    }
+    
+    console.log(`📦 Storage mode: ${this.apiAvailable ? 'API + localStorage' : 'localStorage only'}`);
+    return this.apiAvailable;
+  }
+
+  // Sync to API
+  private async syncToApi(key: string, value: any): Promise<void> {
+    const apiType = API_TYPE_MAP[key];
+    if (!apiType) return;
+
+    const isAvailable = await this.checkApi();
+    if (!isAvailable) return;
+
+    // Clear existing pending save
+    const existing = this.pendingSaves.get(key);
+    if (existing) clearTimeout(existing);
+
+    // Debounce saves
+    const timeout = setTimeout(async () => {
+      try {
+        await fetch(`${API_URL}/api/data/${apiType}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(value),
+        });
+        this.pendingSaves.delete(key);
+      } catch (error) {
+        console.error(`Failed to sync ${apiType} to API:`, error);
+      }
+    }, 500);
+
+    this.pendingSaves.set(key, timeout);
+  }
 
   // Generic get/set with cache
   private get<T>(key: string, defaultValue: T): T {
@@ -47,6 +115,8 @@ class StorageManager {
   private set<T>(key: string, value: T): void {
     this.cache.set(key, value);
     localStorage.setItem(key, JSON.stringify(value));
+    // Sync to API in background
+    this.syncToApi(key, value);
   }
 
   // Items

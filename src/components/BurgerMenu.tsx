@@ -17,6 +17,11 @@ export function BurgerMenu() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
+  // Hide menu on manager view page
+  if (location.pathname === '/manager-view') {
+    return null;
+  }
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>

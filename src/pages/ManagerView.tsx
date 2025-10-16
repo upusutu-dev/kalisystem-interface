@@ -57,32 +57,9 @@ export default function ManagerView() {
 
   const filteredProcessingOrders = useMemo(() => {
     if (!selectedStore) return [];
-    
-    console.log('=== Manager View Debug ===');
-    console.log('Selected Store:', `"${selectedStore}"`, 'Type:', typeof selectedStore);
-    console.log('Total Pending Orders:', pendingOrders.length);
-    
-    pendingOrders.forEach((order, index) => {
-      console.log(`Order ${index}:`, {
-        supplier: order.supplier,
-        status: `"${order.status}"`,
-        storeTag: `"${order.storeTag}"`,
-        storeTagType: typeof order.storeTag,
-        statusMatch: order.status === 'processing',
-        storeMatch: order.storeTag === selectedStore,
-        strictStoreMatch: order.storeTag === selectedStore,
-        caseInsensitiveMatch: order.storeTag?.toLowerCase() === selectedStore.toLowerCase()
-      });
-    });
-    
-    const filtered = pendingOrders.filter(order => 
+    return pendingOrders.filter(order => 
       order.status === 'processing' && order.storeTag === selectedStore
     );
-    
-    console.log('Filtered Processing Orders:', filtered.length);
-    console.log('=== End Debug ===');
-    
-    return filtered;
   }, [pendingOrders, selectedStore]);
 
   const filteredCompletedOrders = useMemo(() => {
@@ -252,22 +229,6 @@ export default function ManagerView() {
           <h1 className="text-3xl font-bold">Store Orders - {selectedStore.toUpperCase()}</h1>
           <p className="text-muted-foreground mt-2">Manager View</p>
         </div>
-
-        {/* Debug Info */}
-        <Card className="p-4 bg-yellow-500/10 border-yellow-500/50">
-          <h3 className="font-bold text-yellow-600 mb-2">🐛 Debug Info</h3>
-          <div className="text-xs space-y-1 font-mono">
-            <div>Selected Store: "{selectedStore}"</div>
-            <div>Total Orders: {pendingOrders.length}</div>
-            <div>Orders Data:</div>
-            {pendingOrders.map((order, i) => (
-              <div key={order.id} className="ml-4 text-yellow-600">
-                {i + 1}. {order.supplier} - status:"{order.status}" storeTag:"{order.storeTag || 'undefined'}" 
-                {order.status === 'processing' && order.storeTag === selectedStore ? ' ✅ MATCH' : ' ❌ NO MATCH'}
-              </div>
-            ))}
-          </div>
-        </Card>
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'processing' | 'completed')} className="w-full">

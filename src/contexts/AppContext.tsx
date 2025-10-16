@@ -4,6 +4,7 @@ import { storage } from '@/lib/storage';
 import type { StorageData } from '@/lib/storage';
 import { parseDefaultData } from '@/lib/dataParser';
 import { nanoid } from 'nanoid';
+import defaultDataJson from '@/default-data-new.json';
 
 interface AppContextType {
   items: Item[];
@@ -191,12 +192,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentOrderMetadata, initialized]);
 
-  const loadDefaultData = async () => {
+  const loadDefaultData = () => {
     try {
-  const response = await fetch('/src/default-data-new.json');
-      const data = await response.json();
-      const parsed = parseDefaultData(data);
-      
+      const parsed = parseDefaultData(defaultDataJson);
+
       // Ensure Wishlist and New Item categories exist
       const wishlistCategory: Category = {
         id: nanoid(),
@@ -208,14 +207,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         name: 'New Item',
         emoji: '🆕'
       };
-      
+
       const hasWishlist = parsed.categories.some(c => c.name === 'Wishlist');
       const hasNewItem = parsed.categories.some(c => c.name === 'New Item');
-      
+
       const categories = [...parsed.categories];
       if (!hasWishlist) categories.push(wishlistCategory);
       if (!hasNewItem) categories.push(newItemCategory);
-      
+
       setItems(parsed.items);
       setCategories(categories);
       setSuppliers(parsed.suppliers);

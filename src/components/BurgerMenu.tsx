@@ -23,13 +23,13 @@ export function BurgerMenu() {
         <Button
           variant="ghost"
           size="icon"
-          className="fixed top-4 left-4 z-50 bg-card/90 border border-border/50 backdrop-blur-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:bg-card"
+          className="fixed top-4 right-4 z-50 bg-card/90 border border-border/50 backdrop-blur-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:bg-card"
           data-testid="burger-menu-button"
         >
           <Menu className="w-5 h-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] sm:w-[350px]">
+      <SheetContent side="right" className="w-[280px] sm:w-[350px]">
         <SheetHeader>
           <SheetTitle>Navigation</SheetTitle>
         </SheetHeader>

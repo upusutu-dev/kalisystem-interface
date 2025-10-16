@@ -16,6 +16,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Item } from '@/types';
 
@@ -25,18 +27,23 @@ interface AddItemModalProps {
   supplier: string;
   items: Item[];
   onAddItem: (item: Item) => void;
+  onUpdateItemSupplier?: (itemId: string, newSupplier: string) => void;
   onCreateNewItem?: (name: string) => void;
 }
 
-export function AddItemModal({ open, onOpenChange, supplier, items, onAddItem, onCreateNewItem }: AddItemModalProps) {
+export function AddItemModal({ open, onOpenChange, supplier, items, onAddItem, onUpdateItemSupplier, onCreateNewItem }: AddItemModalProps) {
   const [newItemName, setNewItemName] = useState('');
   const [showNewInput, setShowNewInput] = useState(false);
+  const [showAllItems, setShowAllItems] = useState(false);
 
   const filteredItems = useMemo(() => {
+    if (showAllItems) {
+      return items;
+    }
     return supplier
       ? items.filter(item => item.supplier === supplier)
       : items;
-  }, [items, supplier]);
+  }, [items, supplier, showAllItems]);
 
   const handleCreateNew = () => {
     if (!newItemName.trim()) {
@@ -53,6 +60,15 @@ export function AddItemModal({ open, onOpenChange, supplier, items, onAddItem, o
     }
   };
 
+  const handleItemSelect = (item: Item) => {
+    if (showAllItems && item.supplier !== supplier && onUpdateItemSupplier) {
+      onUpdateItemSupplier(item.id, supplier);
+      toast.success(`Updated ${item.name} supplier to ${supplier}`);
+    }
+    onAddItem(item);
+    onOpenChange(false);
+  };
+
   if (!open) return null;
 
   return (
@@ -60,7 +76,22 @@ export function AddItemModal({ open, onOpenChange, supplier, items, onAddItem, o
       <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
       <div className="relative bg-popover text-popover-foreground rounded-lg shadow-lg w-[300px] p-0 z-50">
         <Command>
-          <CommandInput placeholder="Search items..." />
+          <div className="p-3 pb-0 space-y-2">
+            <CommandInput placeholder="Search items..." />
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="show-all-items"
+                checked={showAllItems}
+                onCheckedChange={(checked) => setShowAllItems(checked === true)}
+              />
+              <Label
+                htmlFor="show-all-items"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Show all items
+              </Label>
+            </div>
+          </div>
           <CommandList>
             <CommandEmpty>No item found.</CommandEmpty>
             <CommandGroup>
@@ -68,10 +99,7 @@ export function AddItemModal({ open, onOpenChange, supplier, items, onAddItem, o
                 <CommandItem
                   key={item.id}
                   value={item.name}
-                  onSelect={() => {
-                    onAddItem(item);
-                    onOpenChange(false);
-                  }}
+                  onSelect={() => handleItemSelect(item)}
                 >
                   <Check
                     className={cn(
@@ -80,9 +108,12 @@ export function AddItemModal({ open, onOpenChange, supplier, items, onAddItem, o
                   />
                   <div className="flex flex-col flex-1">
                     <span>{item.name}</span>
-                    {item.unitTag && (
-                      <span className="text-xs text-muted-foreground">{item.unitTag}</span>
-                    )}
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      {item.unitTag && <span>{item.unitTag}</span>}
+                      {showAllItems && item.supplier !== supplier && (
+                        <span className="text-amber-600">({item.supplier})</span>
+                      )}
+                    </div>
                   </div>
                   <Plus className="w-4 h-4 ml-2 shrink-0" />
                 </CommandItem>

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { CurrentOrder } from '@/components/orders/CurrentOrder';
@@ -50,7 +51,8 @@ import {
   Plus,
   Tag as TagIcon,
   Upload,
-  Camera
+  Camera,
+  ArrowLeft
 } from 'lucide-react';
 import { AddItemModal } from '@/components/AddItemModal';
 import {
@@ -66,7 +68,8 @@ import {
 } from '@/types';
 
 export default function Order() {
-  const { currentOrder, currentOrderMetadata, updateOrderItem, removeFromOrder, updateOrderMetadata, clearOrder, completeOrder, pendingOrders, updatePendingOrder, deletePendingOrder, managerTags, addPendingOrder, items, addItem } = useApp();
+  const navigate = useNavigate();
+  const { currentOrder, currentOrderMetadata, updateOrderItem, removeFromOrder, updateOrderMetadata, clearOrder, completeOrder, pendingOrders, updatePendingOrder, deletePendingOrder, managerTags, addPendingOrder, items, addItem, updateItem } = useApp();
   const [selectedStore, setSelectedStore] = useState<StoreTag>(STORE_TAGS[0]);
   const [activeTab, setActiveTab] = useState<'current' | 'processing' | 'pending' | 'completed'>('current');
   const [showTagsPanel, setShowTagsPanel] = useState(false);
@@ -514,9 +517,9 @@ export default function Order() {
       return;
     }
 
-    const baseUrl = window.location.origin;
+    const baseUrl = `${window.location.protocol}//${window.location.host}`;
     const shareUrl = `${baseUrl}/manager-view?store=${encodeURIComponent(selectedStoreForShare)}`;
-    
+
     navigator.clipboard.writeText(shareUrl);
     toast.success('Manager link copied to clipboard! The link will show processing and completed orders for ' + selectedStoreForShare.toUpperCase());
     setShareDialogOpen(false);
@@ -547,7 +550,19 @@ export default function Order() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Orders</h1>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full p-2 bg-accent hover:bg-accent/80 active:bg-accent/60 text-accent-foreground transition-colors"
+              onClick={() => navigate(-1)}
+              aria-label="Back"
+              data-testid="button-back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-bold">Orders</h1>
+          </div>
           <Button
             variant="outline"
             onClick={() => setShareDialogOpen(true)}
@@ -1565,6 +1580,9 @@ export default function Order() {
               toast.success('Item added to order');
             }
             setAddItemModalOpen(false);
+          }}
+          onUpdateItemSupplier={(itemId, newSupplier) => {
+            updateItem(itemId, { supplier: newSupplier });
           }}
           onCreateNewItem={(name) => {
             const order = pendingOrdersFiltered.find(o => o.id === selectedOrderForAddItem);

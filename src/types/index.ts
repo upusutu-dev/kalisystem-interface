@@ -11,10 +11,12 @@ export interface VariantTag {
 export interface Item {
   id: string;
   name: string;
+  khmerName?: string;
   category: string;
   supplier: string;
   tags: string[];
   unitTag?: string;
+  unitPrice?: number;
   variantTags?: VariantTag[];
   lastOrdered?: string;
   orderCount?: number;
@@ -36,6 +38,7 @@ export interface Supplier {
   id: string;
   name: string;
   contact?: string;
+  telegramId?: string;
   paymentMethod?: PaymentMethod;
   orderType?: OrderType;
   categories?: string[];
@@ -140,4 +143,5 @@ export interface PendingOrder {
   isPaid?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  completedAt?: Date;
 }

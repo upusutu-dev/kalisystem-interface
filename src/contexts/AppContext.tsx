@@ -252,7 +252,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Suppliers
   const addSupplier = (supplier: Omit<Supplier, 'id'>) => {
-    setSuppliers(prev => [...prev, { ...supplier, id: nanoid() }]);
+    const newSupplier: Supplier = {
+      ...supplier,
+      id: nanoid(),
+      defaultOrderType: supplier.defaultOrderType || 'Delivery',
+      defaultPaymentMethod: supplier.defaultPaymentMethod || 'COD',
+    };
+    setSuppliers(prev => [...prev, newSupplier]);
   };
 
   const updateSupplier = (id: string, updates: Partial<Supplier>) => {

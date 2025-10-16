@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { SupplierForm } from '@/components/forms/SupplierForm';
 import { Supplier } from '@/types';
 import { toast } from 'sonner';
+import { useLongPress } from '@/hooks/use-long-press';
 
 interface SupplierCard {
   id: string;
@@ -127,6 +128,20 @@ export function SupplierDispatchCard({
     id: card.id,
   });
 
+  const handleEditSupplier = () => {
+    const existingSupplier = suppliers.find(s => s.name === card.supplier);
+    if (existingSupplier) {
+      setSupplierToEdit(existingSupplier);
+      setEditSupplierDialogOpen(true);
+    } else {
+      toast.error('Supplier not found');
+    }
+  };
+
+  const longPressProps = useLongPress({
+    onLongPress: handleEditSupplier,
+  });
+
   const handleSupplierSave = () => {
     if (supplierName.trim() && supplierName !== card.supplier) {
       onUpdateSupplier(card.id, supplierName.toUpperCase());
@@ -207,6 +222,12 @@ export function SupplierDispatchCard({
                       setEditingSupplier(true);
                     }
                   }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleEditSupplier();
+                  }}
+                  {...(!canEditSupplier ? longPressProps : {})}
                 >
                   {card.supplier.toUpperCase()}
                 </CardTitle>

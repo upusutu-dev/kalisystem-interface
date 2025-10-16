@@ -11,28 +11,28 @@ interface QuantityInputProps {
   'data-testid'?: string;
 }
 
-export function QuantityInput({ 
-  value, 
-  onChange, 
-  min = 0, 
-  max, 
+export function QuantityInput({
+  value,
+  onChange,
+  min = 0,
+  max,
   className = '',
-  'data-testid': dataTestId 
+  'data-testid': dataTestId
 }: QuantityInputProps) {
   const handleIncrement = () => {
     if (max === undefined || value < max) {
-      // Always increment by 0.01 for precise control
-      const newValue = Math.round((value + 0.01) * 100) / 100;
+      // Increment by 1 for standard control, or 0.1 if value is less than 1
+      const increment = value < 1 ? 0.1 : 1;
+      const newValue = Math.round((value + increment) * 1000) / 1000;
       onChange(newValue);
     }
   };
 
   const handleDecrement = () => {
-    if (value > min) {
-      // Always decrement by 0.01 for precise control
-      const newValue = Math.max(min, Math.round((value - 0.01) * 100) / 100);
-      onChange(newValue);
-    }
+    // Decrement by 1 for standard control, or 0.1 if value is less than 1
+    const decrement = value <= 1 ? 0.1 : 1;
+    const newValue = Math.max(min, Math.round((value - decrement) * 1000) / 1000);
+    onChange(newValue);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +43,7 @@ export function QuantityInput({
       return;
     }
 
-    // Parse the input value, allowing decimals
+    // Parse the input value, allowing decimals and negatives
     let newValue = parseFloat(inputValue);
 
     // If parsing failed, don't update
@@ -54,10 +54,13 @@ export function QuantityInput({
     // Round to 3 decimal places for more precision
     newValue = Math.round(newValue * 1000) / 1000;
 
-    // Clamp the value between min and max
-    const clampedValue = Math.max(min, max !== undefined ? Math.min(max, newValue) : newValue);
+    // Only apply max constraint, allow min to be 0 or any set value
+    const clampedValue = max !== undefined ? Math.min(max, newValue) : newValue;
 
-    onChange(clampedValue);
+    // Only enforce min constraint if value is less than min
+    const finalValue = clampedValue < min ? min : clampedValue;
+
+    onChange(finalValue);
   };
 
   return (

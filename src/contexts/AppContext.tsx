@@ -193,7 +193,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadDefaultData = async () => {
     try {
-  const response = await fetch('/src/default-data.json');
+  const response = await fetch('/src/default-data-new.json');
       const data = await response.json();
       const parsed = parseDefaultData(data);
       

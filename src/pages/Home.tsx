@@ -17,7 +17,6 @@ import { STORE_TAGS } from '@/types';
 import { toast } from 'sonner';
 import { useLongPress } from '@/hooks/use-long-press';
 import { useItemManagement } from '@/hooks/use-item-management';
-import { ItemDialogForm } from '@/components/dialogs/ItemDialogForm';
 import { format } from 'date-fns';
 
 export default function Home(): JSX.Element {
@@ -453,24 +452,6 @@ export default function Home(): JSX.Element {
               });
               setIsNewCategoryOpen(false);
             }}
-            onCancel={() => setIsNewCategoryOpen(false)}
-            parentCategories={[]}
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Remove duplicate dialog */}
-
-      {/* New Category Dialog */}
-      <Dialog open={isNewCategoryOpen} onOpenChange={setIsNewCategoryOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Category</DialogTitle>
-          </DialogHeader>
-          <CategoryForm
-            data={{ name: newCategoryName, emoji: '📁', parentCategory: '' }}
-            setData={(d) => setNewCategoryName(d.name)}
-            onSave={(data) => void handleAddNewCategory(data.name, data.emoji)}
             onCancel={() => setIsNewCategoryOpen(false)}
             parentCategories={[]}
           />

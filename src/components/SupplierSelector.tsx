@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useLongPress } from '@/hooks/use-long-press';
 
 import { Supplier } from '@/types';
 
@@ -25,9 +26,10 @@ interface SupplierSelectorProps {
   suppliers: Supplier[];
   onSelect: (supplier: string) => void;
   onCreateNew: (name: string) => void;
+  onEditSupplier?: (supplier: Supplier) => void;
 }
 
-export function SupplierSelector({ value, suppliers, onSelect, onCreateNew }: SupplierSelectorProps) {
+export function SupplierSelector({ value, suppliers, onSelect, onCreateNew, onEditSupplier }: SupplierSelectorProps) {
   const [open, setOpen] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState('');
   const [showNewInput, setShowNewInput] = useState(false);
@@ -64,24 +66,45 @@ export function SupplierSelector({ value, suppliers, onSelect, onCreateNew }: Su
           <CommandList>
             <CommandEmpty>No supplier found.</CommandEmpty>
             <CommandGroup>
-              {suppliers.map((supplier) => (
-                <CommandItem
-                  key={supplier.id}
-                  value={supplier.name}
-                  onSelect={() => {
-                    onSelect(supplier.name);
+              {suppliers.map((supplier) => {
+                const longPressProps = onEditSupplier ? useLongPress({
+                  onLongPress: () => {
+                    onEditSupplier(supplier);
                     setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      value === supplier.name ? 'opacity-100' : 'opacity-0'
+                  }
+                }) : {};
+
+                return (
+                  <CommandItem
+                    key={supplier.id}
+                    value={supplier.name}
+                    onSelect={() => {
+                      onSelect(supplier.name);
+                      setOpen(false);
+                    }}
+                    onContextMenu={(e) => {
+                      if (onEditSupplier) {
+                        e.preventDefault();
+                        onEditSupplier(supplier);
+                        setOpen(false);
+                      }
+                    }}
+                    {...longPressProps}
+                    className="relative group"
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        value === supplier.name ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    {supplier.name.toUpperCase()}
+                    {onEditSupplier && (
+                      <Edit className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                     )}
-                  />
-                  {supplier.name.toUpperCase()}
-                </CommandItem>
-              ))}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
           

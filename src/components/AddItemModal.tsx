@@ -1,10 +1,22 @@
 import { useState, useMemo } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { Check, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Plus } from 'lucide-react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { Item } from '@/types';
 
 interface AddItemModalProps {
@@ -17,103 +29,104 @@ interface AddItemModalProps {
 }
 
 export function AddItemModal({ open, onOpenChange, supplier, items, onAddItem, onCreateNewItem }: AddItemModalProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [newItemName, setNewItemName] = useState('');
+  const [showNewInput, setShowNewInput] = useState(false);
 
   const filteredItems = useMemo(() => {
-    // First filter by supplier
-    const supplierFilteredItems = supplier 
+    return supplier
       ? items.filter(item => item.supplier === supplier)
       : items;
+  }, [items, supplier]);
 
-    // Then filter by search query
-    if (!searchQuery.trim()) {
-      return supplierFilteredItems;
+  const handleCreateNew = () => {
+    if (!newItemName.trim()) {
+      toast.error('Item name cannot be empty');
+      return;
     }
 
-    const query = searchQuery.toLowerCase();
-    return supplierFilteredItems.filter(item =>
-      item.name.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.tags.some(tag => tag.toLowerCase().includes(query))
-    );
-  }, [items, searchQuery, supplier]);
-
-  const handleAddItem = (item: Item) => {
-    onAddItem(item);
-    setSearchQuery('');
+    if (onCreateNewItem) {
+      onCreateNewItem(newItemName.trim());
+      setNewItemName('');
+      setShowNewInput(false);
+      onOpenChange(false);
+      toast.success(`Created item: ${newItemName.trim()}`);
+    }
   };
 
-  const handleClose = () => {
-    setSearchQuery('');
-    onOpenChange(false);
-  };
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Item</DialogTitle>
-        </DialogHeader>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
+      <div className="relative bg-popover text-popover-foreground rounded-lg shadow-lg w-[300px] p-0 z-50">
+        <Command>
+          <CommandInput placeholder="Search items..." />
+          <CommandList>
+            <CommandEmpty>No item found.</CommandEmpty>
+            <CommandGroup>
+              {filteredItems.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  value={item.name}
+                  onSelect={() => {
+                    onAddItem(item);
+                    onOpenChange(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      'mr-2 h-4 w-4 opacity-0'
+                    )}
+                  />
+                  <div className="flex flex-col flex-1">
+                    <span>{item.name}</span>
+                    {item.unitTag && (
+                      <span className="text-xs text-muted-foreground">{item.unitTag}</span>
+                    )}
+                  </div>
+                  <Plus className="w-4 h-4 ml-2 shrink-0" />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
 
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search items..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              data-testid="input-search-items"
-              autoFocus
-            />
-          </div>
-
-          <ScrollArea className="h-[400px] pr-4">
-            {filteredItems.length === 0 ? (
-              <div className="text-center py-8 space-y-4">
-                <p className="text-muted-foreground">No items found{searchQuery && ` matching "${searchQuery}"`}</p>
-                {searchQuery && onCreateNewItem && (
-                  <Button
-                    onClick={() => {
-                      onCreateNewItem(searchQuery);
-                      handleClose();
+          {onCreateNewItem && (
+            <div className="border-t p-2">
+              {showNewInput ? (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="New item name"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreateNew();
+                      } else if (e.key === 'Escape') {
+                        setShowNewInput(false);
+                        setNewItemName('');
+                      }
                     }}
-                    className="gap-2"
-                    data-testid="button-create-new-item"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create "{searchQuery}"
+                    className="flex-1"
+                    autoFocus
+                  />
+                  <Button onClick={handleCreateNew} size="sm">
+                    Add
                   </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredItems.map(item => (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    className="w-full justify-start h-auto py-3 px-3"
-                    onClick={() => handleAddItem(item)}
-                    data-testid={`button-add-item-${item.id}`}
-                  >
-                    <div className="flex flex-col items-start gap-1 flex-1">
-                      <div className="font-medium">{item.name}</div>
-                      <div className="flex gap-1 flex-wrap">
-                        {item.unitTag && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.unitTag}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <Plus className="w-4 h-4 ml-2 shrink-0" />
-                  </Button>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-      </DialogContent>
-    </Dialog>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => setShowNewInput(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create new item
+                </Button>
+              )}
+            </div>
+          )}
+        </Command>
+      </div>
+    </div>
   );
 }

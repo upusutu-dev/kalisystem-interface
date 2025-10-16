@@ -2,8 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Item, Supplier, StoreTag, STORE_TAGS, OrderType, PaymentMethod } from '@/types';
 import { nanoid } from 'nanoid';
 import defaultData from '@/default-data-new.json';
-import fs from 'fs';
-import path from 'path';
 
 interface CoreDataContextType {
   // Core data
@@ -46,62 +44,8 @@ export function CoreDataProvider({ children }: { children: React.ReactNode }) {
     setSuppliers(formattedSuppliers);
   }, []);
 
-  // Save changes back to the data file
-  const saveDataChanges = async (newData: typeof defaultData) => {
-    try {
-      // Update exportInfo
-      newData.exportInfo = {
-        version: '1.0.0',
-        exportedAt: new Date().toISOString(),
-        lastModified: new Date().toISOString()
-      };
-
-      // Save the changes back to the file
-      const electronAPI = (window as any).electronAPI;
-      if (electronAPI) {
-        // If running in Electron, use IPC
-        await electronAPI.saveData(newData);
-      } else {
-        // If running in development, save to local file
-        const filePath = path.join(process.cwd(), 'src/default-data-new.json');
-        await fs.promises.writeFile(filePath, JSON.stringify(newData, null, 2));
-      }
-      return true;
-    } catch (error) {
-      console.error('Error saving data:', error);
-      return false;
-    }
-  };
-
-  // Persist changes to the data file
-  useEffect(() => {
-    const currentData = { ...defaultData };
-    currentData.items = items;
-    saveDataChanges(currentData);
-  }, [items]);
-
-  useEffect(() => {
-    const currentData = { ...defaultData };
-    // Convert suppliers to the format expected by the data file
-    const suppliersObj = suppliers.reduce((acc, supplier) => {
-      acc[supplier.id] = {
-        id: supplier.id,
-        name: supplier.name,
-        defaultPaymentMethod: supplier.defaultPaymentMethod,
-        defaultOrderType: supplier.defaultOrderType
-      };
-      return acc;
-    }, {} as typeof defaultData.suppliers);
-    
-    // Update while preserving the object structure
-    Object.keys(currentData.suppliers).forEach(key => {
-      if (suppliersObj[key]) {
-        currentData.suppliers[key] = suppliersObj[key];
-      }
-    });
-    
-    saveDataChanges(currentData);
-  }, [suppliers]);
+  // Note: Data persistence is handled by AppContext using localStorage
+  // This context is only used for reading default data
   
   const addItem = (item: Omit<Item, 'id'>) => {
     const newItem = { ...item, id: nanoid() };

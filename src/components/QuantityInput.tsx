@@ -36,30 +36,28 @@ export function QuantityInput({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Handle empty input or decimal point without immediately resetting
-    if (e.target.value === '' || e.target.value === '.') {
-      e.target.value = e.target.value;
+    const inputValue = e.target.value;
+
+    // Allow empty input, decimal point, or leading zero for decimals
+    if (inputValue === '' || inputValue === '.' || inputValue === '0' || inputValue === '0.') {
       return;
     }
-    
+
     // Parse the input value, allowing decimals
-    let newValue = parseFloat(e.target.value);
-    
-    // If parsing failed, keep the current value
+    let newValue = parseFloat(inputValue);
+
+    // If parsing failed, don't update
     if (isNaN(newValue)) {
-      e.target.value = value.toString();
       return;
     }
-    
-    // Round to 2 decimal places
-    newValue = Math.round(newValue * 100) / 100;
-    
+
+    // Round to 3 decimal places for more precision
+    newValue = Math.round(newValue * 1000) / 1000;
+
     // Clamp the value between min and max
     const clampedValue = Math.max(min, max !== undefined ? Math.min(max, newValue) : newValue);
-    
-    if (clampedValue !== value) {
-      onChange(clampedValue);
-    }
+
+    onChange(clampedValue);
   };
 
   return (
@@ -77,22 +75,22 @@ export function QuantityInput({
       </Button>
       <Input
         type="number"
-        step="0.01"
+        step="0.001"
         min={min}
         max={max}
-        value={value.toFixed(2)}
+        value={value}
         onChange={handleInputChange}
         onBlur={(e) => {
           // Ensure valid number on blur
           if (e.target.value === '' || isNaN(parseFloat(e.target.value))) {
             onChange(min);
           } else {
-            // Round to 2 decimal places
-            const rounded = Math.round(parseFloat(e.target.value) * 100) / 100;
+            // Round to 3 decimal places
+            const rounded = Math.round(parseFloat(e.target.value) * 1000) / 1000;
             onChange(rounded);
           }
         }}
-        className="w-16 h-8 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        className="w-20 h-8 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         data-testid={dataTestId ? `${dataTestId}-input` : undefined}
       />
       <Button

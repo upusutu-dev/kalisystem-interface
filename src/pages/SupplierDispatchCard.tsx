@@ -9,6 +9,10 @@ import { GripVertical, ChevronDown, ChevronRight, Plus, ShoppingCart, Trash2, X 
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { ParsedItem } from './BulkOrder';
 import { useApp } from '@/contexts/AppContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SupplierForm } from '@/components/forms/SupplierForm';
+import { Supplier } from '@/types';
+import { toast } from 'sonner';
 
 interface SupplierCard {
   id: string;
@@ -110,10 +114,12 @@ export function SupplierDispatchCard({
   onUpdateSupplier,
   isNewCard = false,
 }: SupplierDispatchCardProps) {
-  const { suppliers, addSupplier } = useApp();
+  const { suppliers, addSupplier, updateSupplier, deleteSupplier } = useApp();
   const [editingSupplier, setEditingSupplier] = useState(false);
   const [supplierName, setSupplierName] = useState(card.supplier);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editSupplierDialogOpen, setEditSupplierDialogOpen] = useState(false);
+  const [supplierToEdit, setSupplierToEdit] = useState<Supplier | null>(null);
   const isNewItemsCard = card.supplier === 'New Items';
   const canEditSupplier = isNewItemsCard || isNewCard;
 
@@ -185,6 +191,11 @@ export function SupplierDispatchCard({
                         setSupplierName(upperName);
                         setEditingSupplier(false);
                       }}
+                    onEditSupplier={(supplier) => {
+                      setSupplierToEdit(supplier);
+                      setEditSupplierDialogOpen(true);
+                      setEditingSupplier(false);
+                    }}
                   />
                 </div>
               ) : (
@@ -276,6 +287,42 @@ export function SupplierDispatchCard({
           </div>
         </CardContent>
       )}
+
+      {/* Edit Supplier Dialog */}
+      <Dialog open={editSupplierDialogOpen} onOpenChange={setEditSupplierDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Supplier</DialogTitle>
+          </DialogHeader>
+          {supplierToEdit && (
+            <SupplierForm
+              data={supplierToEdit}
+              setData={setSupplierToEdit}
+              onSave={() => {
+                if (supplierToEdit) {
+                  updateSupplier(supplierToEdit.id, supplierToEdit);
+                  toast.success('Supplier updated successfully');
+                  setEditSupplierDialogOpen(false);
+                  setSupplierToEdit(null);
+                }
+              }}
+              onCancel={() => {
+                setEditSupplierDialogOpen(false);
+                setSupplierToEdit(null);
+              }}
+              isEdit={true}
+              onDelete={() => {
+                if (supplierToEdit) {
+                  deleteSupplier(supplierToEdit.id);
+                  toast.success('Supplier deleted successfully');
+                  setEditSupplierDialogOpen(false);
+                  setSupplierToEdit(null);
+                }
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

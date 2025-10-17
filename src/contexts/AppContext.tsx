@@ -5,6 +5,7 @@ import type { StorageData } from '@/lib/storage';
 import { parseDefaultData } from '@/lib/dataParser';
 import { nanoid } from 'nanoid';
 import defaultDataJson from '@/default-data-new.json';
+import { SupabaseSync } from '@/lib/supabaseSync';
 
 interface AppContextType {
   items: Item[];
@@ -75,53 +76,111 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Load data on mount
   useEffect(() => {
-    const storedItems = storage.getItems();
-    const storedCategories = storage.getCategories();
-    const storedSuppliers = storage.getSuppliers();
-    const storedTags = storage.getTags();
-    const storedManagerTags = storage.getManagerTags();
-    const storedSettings = storage.getSettings();
-    const storedCompletedOrders = storage.getCompletedOrders();
-    const storedPendingOrders = storage.getPendingOrders();
-    const storedCurrentOrder = storage.getCurrentOrder();
-    const storedCurrentOrderMetadata = storage.getCurrentOrderMetadata();
+    const initializeData = async () => {
+      try {
+        const [
+          dbItems,
+          dbCategories,
+          dbSuppliers,
+          dbTags,
+          dbManagerTags,
+          dbSettings,
+          dbPendingOrders,
+          dbCurrentOrder
+        ] = await Promise.all([
+          SupabaseSync.getItems(),
+          SupabaseSync.getCategories(),
+          SupabaseSync.getSuppliers(),
+          SupabaseSync.getTags(),
+          SupabaseSync.getManagerTags(),
+          SupabaseSync.getSettings(),
+          SupabaseSync.getPendingOrders(),
+          SupabaseSync.getCurrentOrder()
+        ]);
 
-    if (storedItems.length > 0) {
-      // Ensure Wishlist and New Item categories exist even for existing data
-      const categories = [...storedCategories];
-      const hasWishlist = categories.some(c => c.name === 'Wishlist');
-      const hasNewItem = categories.some(c => c.name === 'New Item');
-      
-      if (!hasWishlist) {
-        categories.push({
-          id: nanoid(),
-          name: 'Wishlist',
-          emoji: '⭐'
-        });
+        if (dbItems.length > 0) {
+          const categories = [...dbCategories];
+          const hasWishlist = categories.some(c => c.name === 'Wishlist');
+          const hasNewItem = categories.some(c => c.name === 'New Item');
+
+          if (!hasWishlist) {
+            categories.push({
+              id: nanoid(),
+              name: 'Wishlist',
+              emoji: '⭐'
+            });
+          }
+          if (!hasNewItem) {
+            categories.push({
+              id: nanoid(),
+              name: 'New Item',
+              emoji: '🆕'
+            });
+          }
+
+          setItems(dbItems);
+          setCategories(categories);
+          setSuppliers(dbSuppliers);
+          setTags(dbTags);
+          setManagerTags(dbManagerTags);
+          setSettings(dbSettings);
+          setPendingOrders(dbPendingOrders);
+          setCurrentOrder(dbCurrentOrder.items);
+          setCurrentOrderMetadata(dbCurrentOrder.metadata);
+        } else {
+          loadDefaultData();
+        }
+      } catch (error) {
+        console.error('Failed to load from database, falling back to local storage:', error);
+        const storedItems = storage.getItems();
+        const storedCategories = storage.getCategories();
+        const storedSuppliers = storage.getSuppliers();
+        const storedTags = storage.getTags();
+        const storedManagerTags = storage.getManagerTags();
+        const storedSettings = storage.getSettings();
+        const storedCompletedOrders = storage.getCompletedOrders();
+        const storedPendingOrders = storage.getPendingOrders();
+        const storedCurrentOrder = storage.getCurrentOrder();
+        const storedCurrentOrderMetadata = storage.getCurrentOrderMetadata();
+
+        if (storedItems.length > 0) {
+          const categories = [...storedCategories];
+          const hasWishlist = categories.some(c => c.name === 'Wishlist');
+          const hasNewItem = categories.some(c => c.name === 'New Item');
+
+          if (!hasWishlist) {
+            categories.push({
+              id: nanoid(),
+              name: 'Wishlist',
+              emoji: '⭐'
+            });
+          }
+          if (!hasNewItem) {
+            categories.push({
+              id: nanoid(),
+              name: 'New Item',
+              emoji: '🆕'
+            });
+          }
+
+          setItems(storedItems);
+          setCategories(categories);
+          setSuppliers(storedSuppliers);
+          setTags(storedTags);
+          setManagerTags(storedManagerTags);
+          setSettings(storedSettings);
+          setCompletedOrders(storedCompletedOrders);
+          setPendingOrders(storedPendingOrders);
+          setCurrentOrder(storedCurrentOrder);
+          setCurrentOrderMetadata(storedCurrentOrderMetadata);
+        } else {
+          loadDefaultData();
+        }
       }
-      if (!hasNewItem) {
-        categories.push({
-          id: nanoid(),
-          name: 'New Item',
-          emoji: '🆕'
-        });
-      }
-      
-      setItems(storedItems);
-      setCategories(categories);
-      setSuppliers(storedSuppliers);
-      setTags(storedTags);
-      setManagerTags(storedManagerTags);
-      setSettings(storedSettings);
-      setCompletedOrders(storedCompletedOrders);
-      setPendingOrders(storedPendingOrders);
-      setCurrentOrder(storedCurrentOrder);
-      setCurrentOrderMetadata(storedCurrentOrderMetadata);
-    } else {
-      // Load default data on first launch
-      loadDefaultData();
-    }
-    setInitialized(true);
+      setInitialized(true);
+    };
+
+    initializeData();
   }, []);
 
   // Check if autosave is enabled from settings
@@ -133,31 +192,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initialized && isAutosaveEnabled()) {
       storage.setItems(items);
+      SupabaseSync.syncItems(items).catch(console.error);
     }
   }, [items, initialized]);
 
   useEffect(() => {
     if (initialized && isAutosaveEnabled()) {
       storage.setCategories(categories);
+      SupabaseSync.syncCategories(categories).catch(console.error);
     }
   }, [categories, initialized]);
 
   useEffect(() => {
     if (initialized && isAutosaveEnabled()) {
       storage.setSuppliers(suppliers);
+      SupabaseSync.syncSuppliers(suppliers).catch(console.error);
     }
   }, [suppliers, initialized]);
 
   useEffect(() => {
     if (initialized && isAutosaveEnabled()) {
       storage.setTags(tags);
+      SupabaseSync.syncTags(tags).catch(console.error);
     }
   }, [tags, initialized]);
 
   useEffect(() => {
     if (initialized) {
-      // Always save settings regardless of autosave
       storage.setSettings(settings);
+      SupabaseSync.syncSettings(settings).catch(console.error);
     }
   }, [settings, initialized]);
 
@@ -170,12 +233,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initialized) {
       storage.setPendingOrders(pendingOrders);
+      SupabaseSync.syncPendingOrders(pendingOrders).catch(console.error);
     }
   }, [pendingOrders, initialized]);
 
   useEffect(() => {
     if (initialized) {
       storage.setManagerTags(managerTags);
+      SupabaseSync.syncManagerTags(managerTags).catch(console.error);
     }
   }, [managerTags, initialized]);
 
@@ -183,14 +248,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initialized && isAutosaveEnabled()) {
       storage.setCurrentOrder(currentOrder);
-    }
-  }, [currentOrder, initialized]);
-
-  useEffect(() => {
-    if (initialized && isAutosaveEnabled()) {
       storage.setCurrentOrderMetadata(currentOrderMetadata);
+      SupabaseSync.syncCurrentOrder(currentOrder, currentOrderMetadata).catch(console.error);
     }
-  }, [currentOrderMetadata, initialized]);
+  }, [currentOrder, currentOrderMetadata, initialized]);
 
   const loadDefaultData = () => {
     try {
@@ -234,6 +295,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteItem = (id: string) => {
     setItems(prev => prev.filter(item => item.id !== id));
+    SupabaseSync.deleteItem(id).catch(console.error);
   };
 
   // Categories
@@ -247,6 +309,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteCategory = (id: string) => {
     setCategories(prev => prev.filter(cat => cat.id !== id));
+    SupabaseSync.deleteCategory(id).catch(console.error);
   };
 
   // Suppliers
@@ -266,6 +329,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteSupplier = (id: string) => {
     setSuppliers(prev => prev.filter(sup => sup.id !== id));
+    SupabaseSync.deleteSupplier(id).catch(console.error);
   };
 
   // Tags
@@ -279,6 +343,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTag = (id: string) => {
     setTags(prev => prev.filter(tag => tag.id !== id));
+    SupabaseSync.deleteTag(id).catch(console.error);
   };
 
   // Manager Tags
@@ -292,6 +357,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteManagerTag = (id: string) => {
     setManagerTags(prev => prev.filter(tag => tag.id !== id));
+    SupabaseSync.deleteManagerTag(id).catch(console.error);
   };
 
   // Settings
@@ -410,6 +476,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deletePendingOrder = (id: string) => {
     setPendingOrders(prev => prev.filter(order => order.id !== id));
+    SupabaseSync.deletePendingOrder(id).catch(console.error);
   };
 
   // Import/Export

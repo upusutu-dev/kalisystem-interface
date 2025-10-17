@@ -832,17 +832,141 @@ export default function Order() {
                         </Button>
                       </div>
 
-                      {/* Order Items */}
+                      {/* Order Items - Editable */}
                       <div className="space-y-2">
-                        {order.items.map((orderItem, idx) => (
-                          <div key={idx} className="flex items-center gap-3 text-sm">
-                            <div className="flex-1">
-                              <p className="font-medium">{orderItem.item.name}</p>
+                        {order.items.map((orderItem, idx) => {
+                          const itemId = `${order.id}-${idx}`;
+                          const isEditingQuantity = editingQuantityId === itemId;
+
+                          return (
+                            <div key={idx} className="flex items-center gap-3 text-sm">
+                              <div className="flex-1">
+                                <p className="font-medium">{orderItem.item.name}</p>
+                              </div>
+                              {!order.isReceived && isEditingQuantity ? (
+                                <>
+                                  <QuantityInput
+                                    value={orderItem.quantity}
+                                    onChange={(qty) => {
+                                      const updatedItems = [...order.items];
+                                      updatedItems[idx] = { ...updatedItems[idx], quantity: qty };
+                                      updatePendingOrder(order.id, { items: updatedItems });
+                                    }}
+                                    data-testid={`quantity-processing-${order.id}-${idx}`}
+                                  />
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      const updatedItems = order.items.filter((_, i) => i !== idx);
+                                      updatePendingOrder(order.id, { items: updatedItems });
+                                      setEditingQuantityId(null);
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  {!order.isReceived ? (
+                                    <Button variant="ghost" onClick={() => setEditingQuantityId(itemId)}>
+                                      x{orderItem.quantity}
+                                    </Button>
+                                  ) : (
+                                    <span className="text-muted-foreground">x{orderItem.quantity}</span>
+                                  )}
+                                </>
+                              )}
                             </div>
-                            <span className="text-muted-foreground">x{orderItem.quantity}</span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
+
+                      {/* Add Item Button - Only if not received */}
+                      {!order.isReceived && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full gap-1"
+                          onClick={() => {
+                            setSelectedOrderForAddItem(order.id);
+                            setAddItemModalOpen(true);
+                          }}
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add Item
+                        </Button>
+                      )}
+
+                      {/* Order Tags Popover - Only if not received */}
+                      {!order.isReceived && (
+                        <Popover open={tagsPopoverOpen === order.id} onOpenChange={(open) => setTagsPopoverOpen(open ? order.id : null)}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <TagIcon className="w-3 h-3" />
+                              Edit Tags
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <Label>Payment Method</Label>
+                                <Select
+                                  value={order.paymentMethod || ''}
+                                  onValueChange={(value) => updatePendingOrder(order.id, { paymentMethod: value as PaymentMethod })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select payment method" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {PAYMENT_METHODS.map((method) => (
+                                      <SelectItem key={method} value={method}>
+                                        {method === 'COD' ? '💰' : method === 'Aba' ? '💳' : method === 'TrueMoney' ? '🧧' : '💸'} {method}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Order Type</Label>
+                                <Select
+                                  value={order.orderType || ''}
+                                  onValueChange={(value) => updatePendingOrder(order.id, { orderType: value as OrderType })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select order type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ORDER_TYPES.map((type) => (
+                                      <SelectItem key={type} value={type}>
+                                        {type === 'Delivery' ? '🚚' : '📦'} {type}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Store</Label>
+                                <Select
+                                  value={order.storeTag || ''}
+                                  onValueChange={(value) => updatePendingOrder(order.id, { storeTag: value as StoreTag })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select store" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {STORE_TAGS.map((store) => (
+                                      <SelectItem key={store} value={store}>
+                                        📌 {store.toUpperCase()}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
 
                       {/* Order Status Indicators */}
                       <div className="flex flex-wrap gap-2">
@@ -872,7 +996,7 @@ export default function Order() {
                         )}
                       </div>
 
-                      {/* Status Actions */}
+                      {/* Status Actions - Always visible */}
                       <div className="flex flex-wrap gap-2 pt-2 border-t">
                         {!order.isReceived ? (
                           <Button
@@ -886,44 +1010,42 @@ export default function Order() {
                             Mark as received
                           </Button>
                         ) : (
-                          <>
-                            {!order.isPaid && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleMarkAsPaid(order.id)}
-                                className="gap-1"
-                                data-testid={`button-paid-${order.id}`}
-                              >
-                                <DollarSign className="w-3 h-3" />
-                                Set amount
-                              </Button>
-                            )}
-                            {order.amount && !order.invoiceUrl && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAttachInvoice(order.id)}
-                                className="gap-1"
-                                data-testid={`button-invoice-${order.id}`}
-                              >
-                                <FileText className="w-3 h-3" />
-                                Attach invoice
-                              </Button>
-                            )}
-                            {canMarkAsCompleted(order) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleStatusChange(order.id, 'completed')}
-                                className="gap-1"
-                                data-testid={`button-complete-${order.id}`}
-                              >
-                                <CheckCheck className="w-3 h-3" />
-                                Mark as completed
-                              </Button>
-                            )}
-                          </>
+                          <Badge variant="outline" className="gap-1 text-green-600">
+                            <CheckCircle className="w-3 h-3" />
+                            Received
+                          </Badge>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkAsPaid(order.id)}
+                          className="gap-1"
+                          data-testid={`button-set-amount-${order.id}`}
+                        >
+                          <DollarSign className="w-3 h-3" />
+                          {order.isPaid ? 'Update Amount' : 'Set Amount'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAttachInvoice(order.id)}
+                          className="gap-1"
+                          data-testid={`button-invoice-${order.id}`}
+                        >
+                          <FileText className="w-3 h-3" />
+                          {order.invoiceUrl ? 'Update Invoice' : 'Attach Invoice'}
+                        </Button>
+                        {canMarkAsCompleted(order) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusChange(order.id, 'completed')}
+                            className="gap-1"
+                            data-testid={`button-complete-${order.id}`}
+                          >
+                            <CheckCheck className="w-3 h-3" />
+                            Mark as Completed
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -1566,14 +1688,18 @@ export default function Order() {
           </DialogContent>
         </Dialog>
 
-        {/* Add Item Modal for Pending Orders */}
+        {/* Add Item Modal for Pending and Processing Orders */}
         <AddItemModal
           open={addItemModalOpen}
           onOpenChange={setAddItemModalOpen}
-          supplier={pendingOrdersFiltered.find(o => o.id === selectedOrderForAddItem)?.supplier || ''}
+          supplier={
+            pendingOrdersFiltered.find(o => o.id === selectedOrderForAddItem)?.supplier ||
+            processingOrders.find(o => o.id === selectedOrderForAddItem)?.supplier ||
+            ''
+          }
           items={items}
           onAddItem={(item) => {
-            const order = pendingOrdersFiltered.find(o => o.id === selectedOrderForAddItem);
+            const order = [...pendingOrdersFiltered, ...processingOrders].find(o => o.id === selectedOrderForAddItem);
             if (order) {
               const updatedItems = [...order.items, { item, quantity: 1, isNewItem: false }];
               updatePendingOrder(selectedOrderForAddItem, { items: updatedItems });
@@ -1585,7 +1711,7 @@ export default function Order() {
             updateItem(itemId, { supplier: newSupplier });
           }}
           onCreateNewItem={(name) => {
-            const order = pendingOrdersFiltered.find(o => o.id === selectedOrderForAddItem);
+            const order = [...pendingOrdersFiltered, ...processingOrders].find(o => o.id === selectedOrderForAddItem);
             const supplier = order?.supplier || '';
             addItem({
               name: name,

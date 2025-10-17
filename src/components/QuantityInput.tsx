@@ -43,7 +43,7 @@ export function QuantityInput({
       return;
     }
 
-    // Parse the input value, allowing decimals and negatives
+    // Parse the input value, allowing decimals
     let newValue = parseFloat(inputValue);
 
     // If parsing failed, don't update
@@ -54,13 +54,17 @@ export function QuantityInput({
     // Round to 3 decimal places for more precision
     newValue = Math.round(newValue * 1000) / 1000;
 
-    // Only apply max constraint, allow min to be 0 or any set value
-    const clampedValue = max !== undefined ? Math.min(max, newValue) : newValue;
+    // Apply min constraint (default 0, but allow negative if specified)
+    if (newValue < min) {
+      newValue = min;
+    }
 
-    // Only enforce min constraint if value is less than min
-    const finalValue = clampedValue < min ? min : clampedValue;
+    // Apply max constraint if specified
+    if (max !== undefined && newValue > max) {
+      newValue = max;
+    }
 
-    onChange(finalValue);
+    onChange(newValue);
   };
 
   return (

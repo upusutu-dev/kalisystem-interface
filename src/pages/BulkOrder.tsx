@@ -207,7 +207,9 @@ export default function BulkOrder() {
     
     const isStaffFoodMarker = (text: string) => {
       const lowerText = text.toLowerCase();
-      return lowerText.includes('staff food') || lowerText.includes('food for staff');
+      return lowerText.includes('staff food') ||
+             lowerText.includes('food staff') ||
+             lowerText.includes('food for staff');
     };
 
     lines.forEach((line, idx) => {
@@ -682,21 +684,22 @@ export default function BulkOrder() {
     .find(i => i.id === activeId);
 
   return (
-    <div className="min-h-screen pb-20 px-4 pt-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full p-2 bg-accent hover:bg-accent/80 active:bg-accent/60 text-accent-foreground transition-colors"
-            onClick={() => navigate(-1)}
-            aria-label="Back"
-            data-testid="button-back"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          </Button>
-          <h1 className="text-3xl font-bold">Dispatch</h1>
-        </div>
+    <div className="min-h-screen pb-20">
+      <div className="max-w-7xl mx-auto">
+        <div className="px-4 pt-6 space-y-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full p-2 bg-accent hover:bg-accent/80 active:bg-accent/60 text-accent-foreground transition-colors"
+              onClick={() => navigate(-1)}
+              aria-label="Back"
+              data-testid="button-back"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-left"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </Button>
+            <h1 className="text-3xl font-bold">Dispatch</h1>
+          </div>
         {/* Store selection dialog */}
         <Dialog open={storeDialogOpen} onOpenChange={(isOpen) => {
           setStoreDialogOpen(isOpen);
@@ -797,7 +800,7 @@ export default function BulkOrder() {
                       return next;
                     });
                   };
-                  
+
                   return (
                     <SupplierDispatchCard
                       key={card.id}
@@ -854,6 +857,7 @@ export default function BulkOrder() {
             />
           </>
         )}
+        </div>
       </div>
     </div>
   );

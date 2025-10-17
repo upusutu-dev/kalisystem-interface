@@ -352,13 +352,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Pending Orders
   const addPendingOrder = (order: Omit<PendingOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newOrder: PendingOrder = {
-      ...order,
-      id: nanoid(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setPendingOrders(prev => [...prev, newOrder]);
+    // Smart order routing: check if there's an existing pending/processing order for this supplier and store
+    const existingOrder = pendingOrders.find(
+      po =>
+        po.supplier === order.supplier &&
+        po.storeTag === order.storeTag &&
+        (po.status === 'pending' || po.status === 'processing')
+    );
+
+    if (existingOrder) {
+      // Add items to existing order instead of creating a new one
+      const mergedItems = [...existingOrder.items];
+
+      order.items.forEach(newItem => {
+        const existingItemIndex = mergedItems.findIndex(
+          mi => mi.item.id === newItem.item.id
+        );
+
+        if (existingItemIndex >= 0) {
+          // Item already exists, increase quantity
+          mergedItems[existingItemIndex] = {
+            ...mergedItems[existingItemIndex],
+            quantity: mergedItems[existingItemIndex].quantity + newItem.quantity
+          };
+        } else {
+          // New item, add to order
+          mergedItems.push(newItem);
+        }
+      });
+
+      updatePendingOrder(existingOrder.id, {
+        items: mergedItems,
+        updatedAt: new Date()
+      });
+
+      return existingOrder.id;
+    } else {
+      // Create new order
+      const newOrder: PendingOrder = {
+        ...order,
+        id: nanoid(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setPendingOrders(prev => [...prev, newOrder]);
+      return newOrder.id;
+    }
   };
 
   const updatePendingOrder = (id: string, orderUpdate: Partial<PendingOrder>) => {
